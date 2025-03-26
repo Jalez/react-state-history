@@ -1,0 +1,64 @@
+{
+  "name": "undo-redo-ts",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "A flexible Command Pattern implementation for undo/redo functionality in TypeScript and React",
+  "author": "Jaakko Rajala",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jalez/undo-redo-ts"
+  },
+  "keywords": [
+    "typescript",
+    "react",
+    "command-pattern",
+    "undo",
+    "redo",
+    "history"
+  ],
+  "main": "dist/undo-redo-ts.umd.js",
+  "module": "dist/undo-redo-ts.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/undo-redo-ts.es.js",
+      "require": "./dist/undo-redo-ts.umd.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite --open",
+    "build": "tsc -b && vite build",
+    "build-lib": "tsc -b tsconfig.lib.json && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build-lib"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "zustand": "^4.0.0 || ^5.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.21.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^6.2.0",
+    "vite-plugin-dts": "^4.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.3"
+  }
+}

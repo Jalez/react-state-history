@@ -1,0 +1,33 @@
+# Development files
+.github/
+.vscode/
+.eslintrc.js
+.prettierrc
+.gitignore
+.npmrc
+.DS_Store
+
+# Source files (since we publish the dist folder)
+src/
+!src/UndoRedo/
+
+# Example files
+src/examples/
+src/App.tsx
+src/main.tsx
+src/App.css
+src/index.css
+src/assets/
+
+# Configuration files
+tsconfig.*.json
+vite.config.ts
+eslint.config.js
+
+# Build files
+node_modules/
+coverage/
+.nyc_output/
+
+# Development scripts
+scripts/
