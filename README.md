@@ -1,6 +1,6 @@
 # Undo/Redo System
-[![CI](https://github.com/jalez/undo-redo-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/jalez/undo-redo-ts/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jalez/undo-redo-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/jalez/undo-redo-ts)
+
+[![codecov](https://codecov.io/gh/Jalez/undo-redo/graph/badge.svg?token=H0ILMYGA2O)](https://codecov.io/gh/Jalez/undo-redo)
 
 The undo/redo functionality in this project is implemented using the **Command Pattern** - a behavioral design pattern that turns operations into stand-alone objects.
 
