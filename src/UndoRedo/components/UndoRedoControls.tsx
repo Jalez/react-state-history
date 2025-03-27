@@ -12,12 +12,15 @@ export interface UndoRedoButtonProps {
 export interface UndoRedoControlsProps {
   UndoButton?: React.ComponentType<UndoRedoButtonProps>;
   RedoButton?: React.ComponentType<UndoRedoButtonProps>;
+  ClearButton?: React.ComponentType<UndoRedoButtonProps>;
   className?: string;
   renderCustomControls?: (props: {
     undo: () => void;
     redo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    isPersistent?: boolean;
+    togglePersistence?: () => void;
   }) => React.ReactNode;
   showPersistenceToggle?: boolean;
   persistenceLabel?: string;
@@ -62,14 +65,23 @@ const DefaultRedoButton: React.FC<UndoRedoButtonProps> = (props) => (
 );
 
 /**
+ * Default clear button
+ */
+const DefaultClearButton: React.FC<UndoRedoButtonProps> = (props) => (
+  <DefaultButton {...props}>Clear history</DefaultButton>
+);
+
+
+/**
  * UndoRedoControls component
  *
  * Displays undo and redo buttons that can be customized
  * Enables users to undo/redo operations
  */
-const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
+export const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
   UndoButton = DefaultUndoButton,
   RedoButton = DefaultRedoButton,
+  ClearButton = DefaultClearButton,
   className,
   renderCustomControls,
   showPersistenceToggle = false,
@@ -87,15 +99,15 @@ const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
 
   // If custom rendering is provided, use that
   if (renderCustomControls) {
-    return <>{renderCustomControls({ undo, redo, canUndo, canRedo })}</>;
+    return <>{renderCustomControls({ undo, redo, canUndo, canRedo, isPersistent, togglePersistence })}</>;
   }
 
   // Default rendering with customizable buttons
   return (
     <div className={className} style={{ display: "inline-flex" }}>
       <UndoButton onClick={undo} disabled={!canUndo} />
+      <ClearButton onClick={clear} disabled={canUndo || canRedo} />
       <RedoButton onClick={redo} disabled={!canRedo} />
-      <button onClick={clear}>Clear History</button>
       {showPersistenceToggle && (
         <label className="persistence-toggle">
           <input

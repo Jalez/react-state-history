@@ -8,13 +8,60 @@ export {
   useCommandHistory,
 } from "./context/CommandHistoryContext";
 
+// Export reducer and related constants
+export {
+  commandHistoryReducer,
+  initialState,
+  placeholderFunction,
+} from "./context/CommandHistoryReducer";
+
+// Export simplified hooks
+export {
+  useValueCommand,
+  useHistoryState,
+} from "./hooks/useValueCommand";
+
 // Export command utilities
 export {
   createCompositeCommand,
   createCommand,
-  deepClone,
   generateCommandId,
+  analyzeCommandString,
+  createRegisteredCommand,
+  registerValueChangeCommand,
+  createValueChangeCommand,
 } from "./utils/commandUtils";
+
+// Export command registry
+export {
+  registerCommand,
+  getCommand,
+  hasCommand,
+  hydrateCommand,
+  dehydrateCommand,
+  createRegistryCommand,
+} from "./utils/commandRegistry";
+
+export type {
+  CommandFunction,
+  CommandRegistry,
+  SerializableCommand,
+} from "./utils/commandRegistry";
+
+// Export persistence utilities
+export {
+  serializeCommand,
+  deserializeCommand,
+  getStorageKey,
+  saveStateToStorage,
+  loadStateFromStorage,
+  clearStoredState,
+} from "./utils/persistenceUtils";
+
+// Export render utilities
+export {
+  useDeferredActions,
+} from "./utils/renderUtils";
 
 // Export components
 export { default as UndoRedoControls } from "./components/UndoRedoControls";
@@ -32,7 +79,14 @@ export type {
 } from "./UndoRedoControlsRegistration";
 
 // Types
-export type { Command, CommandFactory } from "./types";
+export type { 
+  Command, 
+  CommandFactory, 
+  CommandHistoryState,
+  CommandHistoryAction,
+  CommandHistoryContextType,
+  CommandHistoryProviderProps
+} from "./types";
 
 /**
  * UndoRedoProvider component

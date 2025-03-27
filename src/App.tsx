@@ -4,6 +4,7 @@ import { CounterExample } from "./examples/01-basic/Counter";
 import { TodoListExample } from "./examples/02-composite/TodoList";
 import { ColorPickerExample } from "./examples/03-custom-ui/ColorPicker";
 import { PersistentCounterExample } from "./examples/04-persistence/PersistentCounter";
+import { PersistentToggleCounter } from "./examples/05-persistence-toggle/PersistentToggleCounter";
 
 function App() {
   // Refs for section navigation
@@ -11,6 +12,7 @@ function App() {
   const compositeRef = useRef<HTMLDivElement>(null);
   const customUiRef = useRef<HTMLDivElement>(null);
   const persistenceRef = useRef<HTMLDivElement>(null);
+  const registryRef = useRef<HTMLDivElement>(null);
 
   // Scroll to section - fix the type to match React.useRef's return type
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -37,8 +39,7 @@ function App() {
           -ts
         </h1>
         <p>
-          A Simple yet flexible Command Pattern implementation for TypeScript
-          and React to manage undo/redo functionality in your application.
+        A General way to manage state history in your application. 
         </p>
 
         <div className="tabs">
@@ -53,6 +54,9 @@ function App() {
           </button>
           <button onClick={() => scrollToSection(persistenceRef)}>
             4. Persistence
+          </button>
+          <button onClick={() => scrollToSection(registryRef)}>
+            5. Command Registry
           </button>
         </div>
       </header>
@@ -105,12 +109,24 @@ function App() {
             </button>
           </div>
         </div>
+        
+        <div className="section" id="registry" ref={registryRef}>
+          <PersistentToggleCounter key="registry-example" />
+          <div className="section-divider">
+            <button
+              className="back-to-top"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Back to Top
+            </button>
+          </div>
+        </div>
       </main>
 
       <footer>
         <p>
           <a
-            href="https://github.com/yourusername/undo-redo-ts"
+            href="https://github.com/jalez/undo-redo"
             target="_blank"
             rel="noopener noreferrer"
           >

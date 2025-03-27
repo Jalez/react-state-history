@@ -5,17 +5,18 @@
  * with your own components and styling.
  *
  * Key concepts demonstrated:
+ * - Using useHistoryState for simple state management
  * - Custom undo/redo buttons
  * - Custom rendering of controls
  * - Accessing undo/redo state directly
  */
-import React, { useState } from "react";
+import React from "react";
 import {
   UndoRedoProvider,
   UndoRedoControls,
   UndoRedoButtonProps,
   useCommandHistory,
-  createCommand,
+  useHistoryState,
 } from "../../UndoRedo";
 
 // Custom styled undo button
@@ -116,19 +117,17 @@ const CustomRedoButton: React.FC<UndoRedoButtonProps> = ({
 
 // Color picker component with undo/redo
 const ColorPicker = () => {
-  const [color, setColor] = useState("#3f51b5");
-  const { execute, canUndo, canRedo, undo, redo } = useCommandHistory();
+  // Use the simplified useHistoryState hook instead of manual command creation
+  const [color, setColor] = useHistoryState<string>(
+    "colorPicker/changeColor",
+    "#3f51b5"
+  );
+  
+  const { canUndo, canRedo, undo, redo } = useCommandHistory();
 
+  // Simple handler that uses the command-aware state setter
   const handleColorChange = (newColor: string) => {
-    const oldColor = color;
-
-    const command = createCommand({
-      execute: () => setColor(newColor),
-      undo: () => setColor(oldColor),
-      description: `Change color from ${oldColor} to ${newColor}`,
-    });
-
-    execute(command);
+    setColor(newColor, `Change color from ${color} to ${newColor}`);
   };
 
   // Custom rendering function example - shows how to implement custom controls layout
@@ -240,6 +239,7 @@ const ColorPicker = () => {
           <li>Custom button components with unique styling</li>
           <li>Custom rendering function for complete control over layout</li>
           <li>Accessing undo/redo state directly with useCommandHistory</li>
+          <li>Using <code>useHistoryState</code> for simplified state management</li>
         </ol>
       </div>
     </div>
@@ -263,7 +263,7 @@ const getLuminance = (hex: string): number => {
 // Export the wrapped color picker example
 export const ColorPickerExample = () => (
   <UndoRedoProvider>
-    <h1>Custom UI Example: Color Picker</h1>
+    <h2>Custom UI Example: Color Picker</h2>
     <ColorPicker />
   </UndoRedoProvider>
 );

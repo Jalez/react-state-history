@@ -1,21 +1,18 @@
 /**
  * Composite Commands Example: Todo List
  *
- * This example demonstrates how to use composite commands to group
- * multiple operations into a single undoable action.
+ * This example demonstrates how to use the simplified hooks with
+ * more complex data structures and composite commands.
  *
  * Key concepts demonstrated:
- * - Creating composite commands
+ * - Using useValueCommand for complex state
  * - Grouping multiple state changes as one undoable operation
- * - Maintaining data consistency during undo/redo
  */
-import React, { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   UndoRedoProvider,
   UndoRedoControls,
-  useCommandHistory,
-  createCommand,
-  createCompositeCommand,
+  useValueCommand,
 } from "../../UndoRedo";
 
 // Todo item interface
@@ -25,16 +22,25 @@ interface Todo {
   completed: boolean;
 }
 
-// Simple todo list with undo/redo using composite commands
+// Simple todo list with undo/redo using our simplified hook
 const TodoList = () => {
+  // Regular React state for the todos
   const [todos, setTodos] = useState<Todo[]>([
     { id: 1, text: "Learn about Command Pattern", completed: false },
     { id: 2, text: "Implement Undo/Redo", completed: false },
   ]);
+  
+  // Regular React state for the input field
   const [newTodoText, setNewTodoText] = useState("");
-  const { execute } = useCommandHistory();
+  
+  // Create a command-aware state setter for todos
+  // This hook registers the command type automatically
+  const updateTodos = useValueCommand<Todo[]>(
+    "todoList/updateTodos",
+    setTodos
+  );
 
-  // Add a single todo
+  // Add a single todo with the command-aware state setter
   const addTodo = () => {
     if (!newTodoText.trim()) return;
 
@@ -44,80 +50,44 @@ const TodoList = () => {
       completed: false,
     };
 
-    // Create a command that both adds a todo and clears the input
-    const addCommand = createCommand({
-      execute: () => {
-        setTodos([...todos, newTodo]);
-        setNewTodoText("");
-      },
-      undo: () => {
-        setTodos(todos.filter((todo) => todo.id !== newTodo.id));
-      },
-      description: `Add todo: ${newTodo.text}`,
-    });
-
-    execute(addCommand);
+    // Use our command-aware state setter
+    updateTodos([...todos, newTodo], todos, `Add todo: ${newTodo.text}`);
+    setNewTodoText(""); // Clear input (doesn't need undo/redo)
   };
 
-  // Complete all todos (demonstrates composite commands)
-  const completeAllTodos = () => {
+  // Complete all todos at once
+  const completeAllTodos = useCallback(() => {
     // Only proceed if there are incomplete todos
     const incompleteTodos = todos.filter((todo) => !todo.completed);
     if (incompleteTodos.length === 0) return;
 
-    // Track old state to support undo
-    const oldTodos = [...todos];
+    // Create new todos with all items completed
     const newTodos = todos.map((todo) => ({ ...todo, completed: true }));
-
-    // Create individual commands for each todo being completed
-    const commands = incompleteTodos.map((todo) =>
-      createCommand({
-        execute: () => {}, // Empty because we'll handle state update in the composite
-        undo: () => {}, // Empty because we'll handle state update in the composite
-        description: `Complete "${todo.text}"`,
-      })
-    );
-
-    // Create a composite command that handles all todos at once
-    const compositeCommand = createCompositeCommand(
-      commands,
+    
+    // Use our command-aware state setter
+    updateTodos(
+      newTodos, 
+      todos,
       `Complete ${incompleteTodos.length} todos`
     );
-
-    // Wrap with an outer command that actually updates the state
-    const batchCommand = createCommand({
-      execute: () => {
-        compositeCommand?.execute();
-        setTodos(newTodos);
-      },
-      undo: () => {
-        compositeCommand?.undo();
-        setTodos(oldTodos);
-      },
-      description: `Complete all todos`,
-    });
-
-    execute(batchCommand);
-  };
+  }, [todos, updateTodos]);
 
   // Toggle a single todo's completion status
-  const toggleTodo = (id: number) => {
+  const toggleTodo = useCallback((id: number) => {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
 
-    const oldTodos = [...todos];
     const newTodos = todos.map((t) =>
       t.id === id ? { ...t, completed: !t.completed } : t
     );
-
-    const command = createCommand({
-      execute: () => setTodos(newTodos),
-      undo: () => setTodos(oldTodos),
-      description: `Toggle "${todo.text}"`,
-    });
-
-    execute(command);
-  };
+    
+    // Use our command-aware state setter
+    updateTodos(
+      newTodos,
+      todos, 
+      `Toggle "${todo.text}"`
+    );
+  }, [todos, updateTodos]);
 
   return (
     <div className="example">
@@ -153,13 +123,12 @@ const TodoList = () => {
 
       <div className="description">
         <p>
-          This example demonstrates composite commands by grouping multiple todo
-          updates into a single undoable operation. The "Complete All" button
-          creates a single undo step despite changing multiple todo items.
+          This example demonstrates using the <code>useValueCommand</code> hook with a more
+          complex data structure (an array of todo items). 
         </p>
         <p>
           Try adding todos, marking them complete individually or all at once,
-          then using undo to see the difference.
+          then using undo to see how it works.
         </p>
       </div>
     </div>
@@ -169,7 +138,7 @@ const TodoList = () => {
 // Export the wrapped todo list example
 export const TodoListExample = () => (
   <UndoRedoProvider>
-    <h1>Composite Commands Example: Todo List</h1>
+    <h2>Advanced Example: Todo List with Undo/Redo</h2>
     <TodoList />
   </UndoRedoProvider>
 );

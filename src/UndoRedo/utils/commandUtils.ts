@@ -1,78 +1,122 @@
 /** @format */
-
-import { Command } from "../types";
+import { Command } from '../types';
+import { createRegistryCommand, registerCommand } from './commandRegistry';
 
 /**
  * Generate a unique ID for commands
  */
-export const generateCommandId = (): string => {
-  return `cmd-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`;
-};
+export function generateCommandId(): string {
+  const randomPart = Math.random().toString(36).substring(2, 10);
+  const timestampPart = Date.now();
+  return `cmd-${randomPart}-${timestampPart}`;
+}
 
 /**
- * Create a composite command that groups multiple commands into a single undoable unit
- * 
- * @param commands Array of commands to execute as a batch
- * @param description Optional description for the composite command
- * @returns A single command that executes/undoes all commands in the batch
+ * Creates a command with required properties
  */
-export const createCompositeCommand = (
-  commands: (Command | null)[],
-  description?: string
-): Command | null => {
-  // Filter out null commands
-  const validCommands = commands.filter(Boolean) as Command[];
-  
-  if (validCommands.length === 0) return null;
-  
-  // If only one valid command, just return it
-  if (validCommands.length === 1) return validCommands[0];
-  
-  const descriptions = validCommands
-    .map(cmd => cmd.description)
-    .filter(Boolean);
-    
-  // Create the composite command
+export function createCommand(options: {
+  execute: () => void;
+  undo: () => void;
+  description?: string;
+  id?: string;
+}): Command {
   return {
+    execute: options.execute,
+    undo: options.undo,
+    description: options.description || 'Unnamed command',
+    id: options.id || generateCommandId(),
+  };
+}
+
+/**
+ * Creates a composite command from multiple commands
+ */
+export function createCompositeCommand(commands: Command[], description?: string): Command {
+  return {
+    execute: () => commands.forEach(cmd => cmd.execute()),
+    undo: () => [...commands].reverse().forEach(cmd => cmd.undo()),
+    description: description || 'Composite command',
     id: generateCommandId(),
-    description: description || (descriptions.length > 0 
-      ? `Batch: ${descriptions[0]}${descriptions.length > 1 ? ` (+${descriptions.length - 1} more)` : ''}`
-      : 'Batch operation'),
-      
-    execute: () => {
-      validCommands.forEach(cmd => cmd.execute());
+  };
+}
+
+/**
+ * Analyzes a serialized command string to determine its behavior
+ * This is useful when dealing with persisted commands
+ */
+export function analyzeCommandString(cmdString: string): { 
+  type: 'increment' | 'decrement' | 'reset' | 'unknown', 
+  target?: string 
+} {
+  // Check for increment patterns
+  if (cmdString.includes('c + 1') || cmdString.includes('count + 1') || 
+      cmdString.includes('setValue(newValue)') && cmdString.includes('newValue')) {
+    return { type: 'increment', target: 'count' };
+  }
+  
+  // Check for decrement patterns
+  if (cmdString.includes('c - 1') || cmdString.includes('count - 1') ||
+      cmdString.includes('setValue(') && cmdString.includes('count - 1')) {
+    return { type: 'decrement', target: 'count' };
+  }
+
+  // Check for reset patterns
+  if (cmdString.includes('setValue(0)') || cmdString.includes('setCount(0)')) {
+    return { type: 'reset', target: 'count' };
+  }
+  
+  return { type: 'unknown' };
+}
+
+/**
+ * Creates a registry-based command
+ */
+export function createRegisteredCommand(
+  commandName: string, 
+  params: any, 
+  description?: string
+): Command {
+  return createRegistryCommand(
+    commandName,
+    params,
+    generateCommandId(),
+    description
+  );
+}
+
+/**
+ * Registers a value change command
+ * This is a common pattern for handling state changes
+ */
+export function registerValueChangeCommand<T>(
+  commandType: string, 
+  applyChange: (value: T) => void
+): void {
+  registerCommand(
+    commandType,
+    // Execute function sets to new value
+    (params: { oldValue: T, newValue: T }) => {
+      applyChange(params.newValue);
     },
-    
-    undo: () => {
-      // Undo in REVERSE order - critical for correct undo behavior
-      [...validCommands].reverse().forEach(cmd => cmd.undo());
+    // Undo function reverts to old value
+    (params: { oldValue: T, newValue: T }) => {
+      applyChange(params.oldValue);
     }
-  };
-};
+  );
+}
 
 /**
- * Create a command with deep-copied data to prevent mutation issues
- * 
- * @param params Object containing execute, undo functions, and optional description
- * @returns Command with a generated ID
+ * Create a command that handles changing a value
  */
-export const createCommand = (params: {
-  execute: () => void,
-  undo: () => void,
+export function createValueChangeCommand<T>(
+  commandType: string,
+  oldValue: T,
+  newValue: T,
   description?: string
-}): Command => {
-  return {
-    id: generateCommandId(),
-    description: params.description || "Unnamed command",
-    execute: params.execute,
-    undo: params.undo
-  };
-};
-
-/**
- * Deep clone an object to prevent reference mutations
- * For use in command factories to ensure state separation
- */
-export const deepClone = <T>(obj: T): T => {
-  return JSON.parse(JSON.stringify(obj));
-};
+): Command {
+  return createRegisteredCommand(
+    commandType,
+    { oldValue, newValue },
+    description || `Change from ${oldValue} to ${newValue}`
+  );
+}

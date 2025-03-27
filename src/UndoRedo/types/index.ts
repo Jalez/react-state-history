@@ -24,6 +24,16 @@ export interface Command {
    * Human-readable description of what the command does
    */
   description?: string;
+
+  /**
+   * Optional registry command name (for serializable commands)
+   */
+  commandName?: string;
+
+  /**
+   * Optional parameters for registry-based commands
+   */
+  params?: any;
 }
 
 /**
@@ -61,6 +71,28 @@ export interface CommandHistoryState {
   maxStackSize: number;
 
   /**
+   * Whether the command history should persist between page reloads
+   */
+  isPersistent: boolean;
+}
+
+/**
+ * Actions for the command history reducer
+ */
+export type CommandHistoryAction =
+  | { type: "EXECUTE"; command: Command }
+  | { type: "UNDO" }
+  | { type: "REDO" }
+  | { type: "CLEAR" }
+  | { type: "SET_MAX_STACK_SIZE"; size: number }
+  | { type: "TOGGLE_PERSISTENCE" }
+  | { type: "LOAD_PERSISTENT_STATE"; state: Partial<CommandHistoryState> };
+
+/**
+ * Context interface that extends the state with available operations
+ */
+export interface CommandHistoryContextType extends CommandHistoryState {
+  /**
    * Execute a command and add it to the undo stack
    */
   execute: (command: Command) => void;
@@ -86,7 +118,32 @@ export interface CommandHistoryState {
   setMaxStackSize: (size: number) => void;
 
   /**
-   * Reset the command history to its initial state
+   * Toggle command persistence
    */
-  reset: () => void;
+  togglePersistence: () => void;
+}
+
+/**
+ * Props for the CommandHistoryProvider component
+ */
+export interface CommandHistoryProviderProps {
+  /**
+   * Child components
+   */
+  children: React.ReactNode;
+
+  /**
+   * Maximum size for the undo/redo stacks
+   */
+  maxStackSize?: number;
+
+  /**
+   * Custom storage key for persistence
+   */
+  storageKey?: string;
+
+  /**
+   * Whether persistence is enabled by default
+   */
+  defaultPersistent?: boolean;
 }
