@@ -1,5 +1,11 @@
 /** @format */
 import React, { useEffect } from "react";
+import type { UndoRedoControlsProps } from "./components/UndoRedoControls";
+
+// Import here to avoid circular dependencies
+const UndoRedoControls = React.lazy(
+  () => import("./components/UndoRedoControls")
+);
 
 /**
  * Type for control registration function
@@ -9,7 +15,7 @@ export type RegisterControlFn = (
   section: string,
   type: string,
   id: string,
-  component: React.ComponentType<any>,
+  component: React.ComponentType<UndoRedoControlsProps>,
   props?: object,
   priority?: number
 ) => void;
@@ -53,11 +59,6 @@ const UndoRedoControlsRegistration: React.FC<UndoRedoRegistrationProps> = ({
   controlType = "default",
   priority = 5,
 }) => {
-  // Import here to avoid circular dependencies
-  const UndoRedoControls = React.lazy(
-    () => import("./components/UndoRedoControls")
-  );
-
   useEffect(() => {
     // Register the undo/redo controls in the specified section
     registerControl(
@@ -68,7 +69,6 @@ const UndoRedoControlsRegistration: React.FC<UndoRedoRegistrationProps> = ({
       {}, // No props needed as component uses context
       priority
     );
-
     // Cleanup when unmounted
     return () => {
       unregisterControl(section, controlType, "UNDO_REDO_CONTROLS");

@@ -4,27 +4,27 @@ import { Command } from '../types';
 /**
  * Represents a registered command function
  */
-export interface CommandFunction {
+export interface CommandFunction<T = unknown> {
   /**
    * Execute the command with given parameters
    */
-  execute: (params: any) => void;
+  execute: (params: T) => void;
   
   /**
    * Undo the command with given parameters
    */
-  undo: (params: any) => void;
+  undo: (params: T) => void;
 }
 
 /**
  * Registry for storing command functions by name
  */
-export type CommandRegistry = Record<string, CommandFunction>;
+export type CommandRegistry = Record<string, CommandFunction<unknown>>;
 
 /**
  * Serializable version of a command
  */
-export interface SerializableCommand {
+export interface SerializableCommand<T = unknown> {
   /**
    * Unique identifier for the command
    */
@@ -38,7 +38,7 @@ export interface SerializableCommand {
   /**
    * Parameters needed to execute/undo the command
    */
-  params: any;
+  params: T;
   
   /**
    * Human-readable description of what the command does
@@ -52,26 +52,26 @@ const globalRegistry: CommandRegistry = {};
 /**
  * Register a command function with the registry
  */
-export function registerCommand(
+export function registerCommand<T>(
   name: string, 
-  executeFn: (params: any) => void,
-  undoFn: (params: any) => void
+  executeFn: (params: T) => void,
+  undoFn: (params: T) => void
 ): void {
   if (globalRegistry[name]) {
     console.warn(`Command "${name}" is already registered. Overwriting.`);
   }
   
   globalRegistry[name] = {
-    execute: executeFn,
-    undo: undoFn
+    execute: executeFn as (params: unknown) => void,
+    undo: undoFn as (params: unknown) => void
   };
 }
 
 /**
  * Get a command function from the registry
  */
-export function getCommand(name: string): CommandFunction | undefined {
-  return globalRegistry[name];
+export function getCommand<T>(name: string): CommandFunction<T> | undefined {
+  return globalRegistry[name] as CommandFunction<T> | undefined;
 }
 
 /**
@@ -84,9 +84,9 @@ export function hasCommand(name: string): boolean {
 /**
  * Create a Command object from a SerializableCommand and the registry
  */
-export function hydrateCommand(serializableCommand: SerializableCommand): Command {
+export function hydrateCommand<T>(serializableCommand: SerializableCommand<T>): Command<T> {
   const { id, commandName, params, description } = serializableCommand;
-  const commandFn = getCommand(commandName);
+  const commandFn = getCommand<T>(commandName);
   
   if (!commandFn) {
     console.error(`Command function "${commandName}" not found in registry`);
@@ -95,7 +95,9 @@ export function hydrateCommand(serializableCommand: SerializableCommand): Comman
       id,
       description: description || `Unknown command: ${commandName}`,
       execute: () => console.error(`Cannot execute unknown command: ${commandName}`),
-      undo: () => console.error(`Cannot undo unknown command: ${commandName}`)
+      undo: () => console.error(`Cannot undo unknown command: ${commandName}`),
+      commandName,
+      params
     };
   }
   
@@ -104,7 +106,6 @@ export function hydrateCommand(serializableCommand: SerializableCommand): Comman
     description,
     execute: () => commandFn.execute(params),
     undo: () => commandFn.undo(params),
-    // Store original command info for serialization
     commandName,
     params
   };
@@ -113,7 +114,7 @@ export function hydrateCommand(serializableCommand: SerializableCommand): Comman
 /**
  * Convert a Command object to a SerializableCommand
  */
-export function dehydrateCommand(command: Command): SerializableCommand {
+export function dehydrateCommand<T>(command: Command<T>): SerializableCommand<T> {
   if (!command.commandName || command.params === undefined) {
     throw new Error('Command is not serializable: missing commandName or params');
   }
@@ -129,13 +130,13 @@ export function dehydrateCommand(command: Command): SerializableCommand {
 /**
  * Create a command using the registry
  */
-export function createRegistryCommand(
+export function createRegistryCommand<T>(
   commandName: string,
-  params: any,
+  params: T,
   id?: string,
   description?: string
-): Command {
-  const commandFn = getCommand(commandName);
+): Command<T> {
+  const commandFn = getCommand<T>(commandName);
   
   if (!commandFn) {
     throw new Error(`Command function "${commandName}" not found in registry`);
@@ -146,7 +147,6 @@ export function createRegistryCommand(
     description: description || `Command: ${commandName}`,
     execute: () => commandFn.execute(params),
     undo: () => commandFn.undo(params),
-    // Store original command info for serialization
     commandName,
     params
   };

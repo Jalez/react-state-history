@@ -64,7 +64,10 @@ describe('PersistentToggleCounter component', () => {
       // Test the legacy count, which may be more flaky
       try {
         expect(legacyCountElement.textContent).toContain('1');
-      } catch (e) {
+      } catch (
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        legacyCountError
+      ) {
         // If we can't verify legacy count, we'll accept the test
         // as passing if registry counter works correctly
         console.log('Legacy counter did not update to 1, but test continues');
@@ -128,7 +131,10 @@ describe('PersistentToggleCounter component', () => {
       // Try to verify legacy counter, but continue if it fails
       try {
         expect(counters[0].textContent).toContain('2');
-      } catch (e) {
+      } catch (
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        legacyCountError
+      ) {
         console.log('Legacy counter value not updated correctly');
       }
     }, { timeout: 2000 });

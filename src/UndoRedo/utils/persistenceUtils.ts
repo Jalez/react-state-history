@@ -1,12 +1,19 @@
 /** @format */
-import { Command } from '../types';
+import { Command, CommandHistoryState } from '../types';
 import { STORAGE_KEY_PREFIX } from '../context/CommandHistoryReducer';
 import { dehydrateCommand, hydrateCommand, SerializableCommand } from './commandRegistry';
+
+interface SerializedState {
+  undoStack: (SerializableCommand | Record<string, unknown>)[];
+  redoStack: (SerializableCommand | Record<string, unknown>)[];
+  maxStackSize: number;
+  isPersistent: boolean;
+}
 
 /**
  * Serializes a command to a format that can be stored in localStorage
  */
-export function serializeCommand(cmd: Command): SerializableCommand | Record<string, any> {
+export function serializeCommand(cmd: Command): SerializableCommand | Record<string, unknown> {
   // If the command has a commandName and params, use registry serialization
   if (cmd.commandName && cmd.params !== undefined) {
     return dehydrateCommand(cmd);
@@ -14,7 +21,7 @@ export function serializeCommand(cmd: Command): SerializableCommand | Record<str
   
   // Fall back to legacy serialization for non-registry commands
   console.warn('Command is not registry-based, using legacy serialization:', cmd.description);
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   
   // Copy all properties except functions
   Object.entries(cmd).forEach(([key, value]) => {
@@ -33,9 +40,9 @@ export function serializeCommand(cmd: Command): SerializableCommand | Record<str
 /**
  * Deserializes a command from localStorage format
  */
-export function deserializeCommand(serialized: any): Command {
+export function deserializeCommand(serialized: SerializableCommand | Record<string, unknown>): Command {
   // If the serialized command has commandName and params, use registry deserialization
-  if (serialized.commandName && serialized.params !== undefined) {
+  if ('commandName' in serialized && 'params' in serialized) {
     return hydrateCommand(serialized as SerializableCommand);
   }
   
@@ -44,8 +51,8 @@ export function deserializeCommand(serialized: any): Command {
   
   // Return a basic command with placeholder functions
   return {
-    id: serialized.id,
-    description: serialized.description || 'Legacy command',
+    id: String(serialized.id ?? ''),
+    description: String(serialized.description ?? 'Legacy command'),
     // Use placeholder functions
     execute: () => console.warn(`Cannot execute legacy command: ${serialized.description}`),
     undo: () => console.warn(`Cannot undo legacy command: ${serialized.description}`),
@@ -101,23 +108,31 @@ export function saveStateToStorage(
 /**
  * Loads the command history state from localStorage
  */
-export function loadStateFromStorage(storageKey: string): any {
+export function loadStateFromStorage(storageKey: string): Partial<CommandHistoryState> | null {
   try {
     const savedState = localStorage.getItem(storageKey);
     if (!savedState) return null;
     console.log('Loading state from localStorage:', storageKey);
-    const parsedState = JSON.parse(savedState);
+    const parsedState = JSON.parse(savedState) as SerializedState;
     
-    // Re-hydrate the commands with proper functions
+    // Create a new state object that matches CommandHistoryState
+    const restoredState: Partial<CommandHistoryState> = {
+      maxStackSize: parsedState.maxStackSize,
+      isPersistent: parsedState.isPersistent,
+    };
+    
+    // Re-hydrate the command stacks with proper functions
     if (parsedState.undoStack) {
-      parsedState.undoStack = parsedState.undoStack.map(deserializeCommand);
+      restoredState.undoStack = parsedState.undoStack.map(deserializeCommand);
+      restoredState.canUndo = restoredState.undoStack.length > 0;
     }
     
     if (parsedState.redoStack) {
-      parsedState.redoStack = parsedState.redoStack.map(deserializeCommand);
+      restoredState.redoStack = parsedState.redoStack.map(deserializeCommand);
+      restoredState.canRedo = restoredState.redoStack.length > 0;
     }
     
-    return parsedState;
+    return restoredState;
   } catch (error) {
     console.error("Error loading persistent state:", error);
     return null;

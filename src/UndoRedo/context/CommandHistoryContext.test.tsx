@@ -18,7 +18,10 @@ describe('CommandHistoryContext', () => {
   });
 
   // Custom matcher for command history tests
-  function expectCommandHistory(result: any, expectedProps: Record<string, any>) {
+  function expectCommandHistory(
+    result: { current: ReturnType<typeof useCommandHistory> },
+    expectedProps: Partial<ReturnType<typeof useCommandHistory>>
+  ) {
     Object.entries(expectedProps).forEach(([key, value]) => {
       expect(result.current[key as keyof typeof result.current]).toEqual(value);
     });

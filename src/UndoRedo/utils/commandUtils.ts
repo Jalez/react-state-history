@@ -71,11 +71,11 @@ export function analyzeCommandString(cmdString: string): {
 /**
  * Creates a registry-based command
  */
-export function createRegisteredCommand(
+export function createRegisteredCommand<T>(
   commandName: string, 
-  params: any, 
+  params: T, 
   description?: string
-): Command {
+): Command<T> {
   return createRegistryCommand(
     commandName,
     params,

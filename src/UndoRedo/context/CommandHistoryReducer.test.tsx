@@ -118,7 +118,7 @@ describe('commandHistoryReducer', () => {
   
   it('should handle TOGGLE_PERSISTENCE action', () => {
     // Start with persistence disabled
-    let state: CommandHistoryState = { ...initialState, isPersistent: false };
+    const state: CommandHistoryState = { ...initialState, isPersistent: false };
     
     // Toggle on
     const action: CommandHistoryAction = { type: 'TOGGLE_PERSISTENCE' };

@@ -4,7 +4,7 @@
  * Command Pattern Interface
  * Represents an operation that can be executed and undone
  */
-export interface Command {
+export interface Command<T = unknown> {
   /**
    * Execute the command operation
    */
@@ -33,7 +33,7 @@ export interface Command {
   /**
    * Optional parameters for registry-based commands
    */
-  params?: any;
+  params?: T;
 }
 
 /**

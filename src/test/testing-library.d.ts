@@ -1,17 +1,10 @@
 /// <reference types="vitest" />
 import '@testing-library/jest-dom';
-
-// Extend the Vitest Assertion interface
-interface CustomMatchers<R = unknown> {
-  toBeInTheDocument(): R;
-  toBeVisible(): R;
-  toBeChecked(): R;
-  toHaveTextContent(text: string | RegExp): R;
-  toHaveStyle(css: string): R;
-  toBeDisabled(): R;
-}
+import { TestingLibraryMatchers } from '@testing-library/jest-dom/matchers';
 
 declare module 'vitest' {
-  interface Assertion<T = any> extends CustomMatchers<T> {}
-  interface AsymmetricMatchersContaining extends CustomMatchers {}
+  interface Assertion extends TestingLibraryMatchers<typeof expect.stringContaining, void> {
+    // This property is needed to make TypeScript happy with interface extension
+    readonly __brand: 'vitest.assertion';
+  }
 }

@@ -1,5 +1,5 @@
 /** @format */
-import { CommandHistoryState, CommandHistoryAction, Command } from '../types';
+import { CommandHistoryState, CommandHistoryAction } from '../types';
 
 // Storage key for persistent state
 export const STORAGE_KEY_PREFIX = "undoredo_history_";
