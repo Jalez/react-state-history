@@ -32,7 +32,7 @@ Current Structure to Extract
 The current implementation includes:
 
 StateChange interface in types/index.ts
-StateChange history store in store/useStateHistoryStore.ts
+StateChange history store in store/useHistoryStateStore.ts
 React context in context/StateHistoryContext.tsx
 Utilities in utils/commandUtils.ts
 Domain-Specific Implementation

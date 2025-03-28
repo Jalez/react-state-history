@@ -1,6 +1,6 @@
 /** @format */
-import React from "react";
-import { useStateHistoryContext } from "../context/StateHistoryContext";
+import React from 'react';
+import { useHistoryStateContext } from '../context/StateHistoryContext';
 
 export interface HistoryButtonProps {
   onClick: () => void;
@@ -40,12 +40,11 @@ const DefaultButton: React.FC<HistoryButtonProps> = ({
     disabled={disabled}
     className={className}
     style={{
-      padding: "8px",
-      margin: "0 4px",
-      cursor: disabled ? "default" : "pointer",
+      padding: '8px',
+      margin: '0 4px',
+      cursor: disabled ? 'default' : 'pointer',
       opacity: disabled ? 0.5 : 1,
-    }}
-  >
+    }}>
     {children}
   </button>
 );
@@ -71,7 +70,6 @@ const DefaultClearButton: React.FC<HistoryButtonProps> = (props) => (
   <DefaultButton {...props}>Clear history</DefaultButton>
 );
 
-
 /**
  * HistoryControls component
  *
@@ -85,7 +83,7 @@ export const HistoryControls: React.FC<HistoryControlsProps> = ({
   className,
   renderCustomControls,
   showPersistenceToggle = false,
-  persistenceLabel = "Enable Persistence",
+  persistenceLabel = 'Enable Persistence',
 }) => {
   const {
     canUndo,
@@ -95,23 +93,34 @@ export const HistoryControls: React.FC<HistoryControlsProps> = ({
     clear,
     isPersistent,
     togglePersistence,
-  } = useStateHistoryContext();
+  } = useHistoryStateContext();
 
   // If custom rendering is provided, use that
   if (renderCustomControls) {
-    return <>{renderCustomControls({ undo, redo, canUndo, canRedo, isPersistent, togglePersistence })}</>;
+    return (
+      <>
+        {renderCustomControls({
+          undo,
+          redo,
+          canUndo,
+          canRedo,
+          isPersistent,
+          togglePersistence,
+        })}
+      </>
+    );
   }
 
   // Default rendering with customizable buttons
   return (
-    <div className={className} style={{ display: "inline-flex" }}>
+    <div className={className} style={{ display: 'inline-flex' }}>
       <UndoButton onClick={undo} disabled={!canUndo} />
       <ClearButton onClick={clear} disabled={canUndo || canRedo} />
       <RedoButton onClick={redo} disabled={!canRedo} />
       {showPersistenceToggle && (
-        <label className="persistence-toggle">
+        <label className='persistence-toggle'>
           <input
-            type="checkbox"
+            type='checkbox'
             checked={isPersistent}
             onChange={togglePersistence}
           />

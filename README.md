@@ -1,367 +1,335 @@
-# Undo/Redo System
+<!-- @format -->
 
 [![codecov](https://codecov.io/gh/Jalez/undo-redo/graph/badge.svg?token=H0ILMYGA2O)](https://codecov.io/gh/Jalez/undo-redo)
 
-The undo/redo functionality in this project is implemented using the **Command Pattern** - a behavioral design pattern that turns operations into stand-alone objects.
+# `react-state-history`: React State History Management
 
-## Architectural Patterns
+`react-state-history` provides a flexible and robust system for managing state history (undo/redo) in React applications using TypeScript. It leverages the Command Pattern and offers features like state persistence, composite commands, and a command registry for serializable actions.
 
-### Command Pattern
+## Features
 
-The Command Pattern encapsulates all information needed to perform an action as an object, allowing actions to be:
-- Delayed 
-- Queued
-- Undone
-- Redone
-- Logged
+- **Command Pattern:** Encapsulates state changes as `StateChange` objects with `execute` and `undo` methods.
+- **React Context API:** Uses `StateHistoryProvider` and `useHistoryStateContext` for easy integration.
+- **Flexible Hooks:**
+  - `useHistoryState`: A simple hook, similar to `useState`, that automatically handles state and command creation for basic scenarios.
+  - `useTrackableState`: A lower-level hook to integrate with existing state management solutions, requiring manual tracking of previous values.
+- **StateChange Registry:** Enables defining serializable command types for persistence.
+- **Persistence:** Optionally persists undo/redo history to `localStorage`.
+- **Composite Commands:** Group multiple actions into a single undoable/redoable step.
+- **Customizable UI:** Provides `HistoryControls` component with options for custom buttons or rendering logic.
+- **TypeScript:** Fully typed for better developer experience and safety.
 
-It separates the object that invokes the operation from the one that knows how to perform it.
+## Core Concepts
 
-#### Core Components
+1.  **`StateChange` Object:** The fundamental unit representing an action. It must have `execute` and `undo` functions. For persistence, it should also include `commandName` and `params`.
+2.  **`StateHistoryProvider`:** Wraps your application (or relevant part) to provide the undo/redo context. Manages the undo/redo stacks and persistence.
+3.  **`useHistoryStateContext`:** Hook to access the context's state (`canUndo`, `canRedo`, `undoStack`, `redoStack`, `isPersistent`) and actions (`execute`, `undo`, `redo`, `clear`, `togglePersistence`, `setMaxStackSize`).
+4.  **StateChange Registry:** A global registry (`registerCommand`, `getCommand`) where you define _how_ to execute and undo specific types of commands based on their `commandName` and `params`. This is crucial for rehydrating commands from persistent storage.
 
-- **Command Interface**: Defines `execute()` and `undo()` methods
-- **Command History**: Maintains stacks of executed and undone commands
-- **Command Execution**: Handles the execution and tracking of commands
+## Basic Setup
 
-### Additional Patterns Used
+Wrap the part of your application that needs undo/redo capabilities with `StateHistoryProvider`.
 
-- **Memento Pattern**: For capturing and storing previous states
-- **Composite Pattern**: For combining multiple commands into a single undoable operation
-- **Dependency Inversion**: Domain-specific modules depend on UndoRedo, not vice versa
+```typescript
+// filepath: src/main.tsx or src/App.tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { StateHistoryProvider } from "./StateHistory"; // Adjust path as needed
+import "./index.css";
 
-## Architecture Diagrams
-
-### Command Pattern Flow
-
-```
-┌──────────────┐       creates       ┌──────────────┐
-│              │ ─────────────────> │              │
-│  Component   │                    │   Command    │
-│  (Invoker)   │ <─────────────────┐│   Object     │
-│              │    is executed by  │              │
-└──────────────┘                    └──────────────┘
-        │                                   │
-        │ uses                              │ operates on
-        ▼                                   ▼
-┌──────────────┐                    ┌──────────────┐
-│              │                    │              │
-│  Command     │                    │  Application │
-│  History     │                    │  State       │
-│              │                    │              │
-└──────────────┘                    └──────────────┘
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <StateHistoryProvider>
+      <App />
+    </StateHistoryProvider>
+  </React.StrictMode>
+);
 ```
 
-### Undo/Redo System Architecture
+## Usage Guide
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                     React Application                      │
-└───────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌───────────────────────────────────────────────────────────┐
-│                     StateHistoryProvider                       │
-└───────────────────────────────────────────────────────────┘
-              │                           │
-              ▼                           ▼
-┌─────────────────────────┐     ┌───────────────────────────┐
-│  StateHistoryContext  │     │ UndoRedoControlsRegister  │
-└─────────────────────────┘     └───────────────────────────┘
-              │                           │
-              ▼                           ▼
-┌─────────────────────────┐     ┌───────────────────────────┐
-│  useStateHistoryStore │     │      HistoryControls     │
-└─────────────────────────┘     └───────────────────────────┘
-        │        │        
-        │        │        ┌───────────────────────────┐
-        │        └───────▶│    useNodeCommands        │
-        │                 └───────────────────────────┘
-        │                                │
-        │                                ▼
-        │                 ┌───────────────────────────┐
-        │                 │     NodeStore             │
-        │                 └───────────────────────────┘
-        │        
-        │                 ┌───────────────────────────┐
-        └────────────────▶│    useEdgeCommands        │
-                          └───────────────────────────┘
-                                         │
-                                         ▼
-                          ┌───────────────────────────┐
-                          │     EdgeStore             │
-                          └───────────────────────────┘
+### 1. Simple State with `useHistoryState`
+
+For managing simple state values (like counters, toggles, or form inputs) where you want automatic undo/redo tracking.
+
+```typescript
+// filepath: src/components/MyCounter.tsx
+import React from "react";
+import { useHistoryState, HistoryControls } from "../StateHistory"; // Adjust path
+
+export function MyCounter() {
+  // useHistoryState returns [value, setValue, resetValue]
+  // 'counter/set' is a unique name for this state change type.
+  // The hook handles command registration automatically
+  const [count, setCount, resetCount] = useHistoryState<number>(
+    "counter/set",
+    0
+  );
+
+  const increment = () => setCount(count + 1, `Increment to ${count + 1}`);
+  const decrement = () => setCount(count - 1, `Decrement to ${count - 1}`);
+
+  return (
+    <div>
+      <h2>Counter: {count}</h2>
+      <button onClick={increment}>+</button>
+      <button onClick={decrement}>-</button>
+      <button onClick={resetCount}>Reset</button>
+      <HistoryControls />
+    </div>
+  );
+}
 ```
 
-### Command Execution Flow
+### 2. Integrating with Existing State (`useTrackableState`)
 
-```
-┌──────────────────┐  1. Create Command  ┌──────────────────┐
-│                  │ ─────────────────> │                  │
-│  Component       │                    │  Command Object  │
-│                  │                    │  (Node, Edge)    │
-└──────────────────┘                    └──────────────────┘
-         │                                       │
-         │ 2. Execute                            │
-         ▼                                       │
-┌──────────────────┐                             │
-│                  │                             │
-│  Command History │                             │
-│  Store           │                             │
-│                  │                             │
-└──────────────────┘                             │
-         │                                       │
-         │ 3. Add to undo stack                  │
-         ▼                                       │
-┌──────────────────┐                             │
-│                  │                             │
-│  UndoStack       │                             │
-│                  │                             │
-└──────────────────┘                             │
-                                                 │
-┌──────────────────┐  4. Modify state           │
-│                  │ <────────────────────────────
-│  Application     │                              
-│  State           │                              
-│                  │                              
-└──────────────────┘
+Use this hook when you already have a state setter function (e.g., from `useState`, `useReducer`, or another library) and want to add undo/redo capabilities. You need to provide the `oldValue` manually.
+
+```typescript
+// filepath: src/components/MyTrackedInput.tsx
+import React, { useState } from "react";
+import {
+  useTrackableState,
+  HistoryControls,
+} from "../StateHistory"; // Adjust path
+
+export function MyTrackedInput() {
+  const [text, setTextDirect] = useState("");
+  
+  // useTrackableState automatically registers the command type internally
+  // No need to call registerValueChangeCommand separately
+  const trackTextChange = useTrackableState<string>("input/set", setTextDirect);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    const oldValue = text; // Capture the old value *before* setting the new one
+    setTextDirect(newValue); // Update the local state directly
+
+    // Track the change for undo/redo
+    trackTextChange(newValue, oldValue, `Set text to "${newValue}"`);
+  };
+
+  return (
+    <div>
+      <input type="text" value={text} onChange={handleChange} />
+      <p>Current Text: {text}</p>
+      <HistoryControls />
+    </div>
+  );
+}
 ```
 
-### Undo Operation Flow
+### 3. Creating Custom Commands (`createCommand`)
 
+For actions that don't fit the simple value change pattern or don't need persistence.
+
+```typescript
+import {
+  useHistoryStateContext,
+  createCommand,
+  HistoryControls,
+} from "../StateHistory";
+
+function CustomActionComponent() {
+  const { execute } = useHistoryStateContext();
+  const [logs, setLogs] = React.useState<string[]>([]);
+
+  const performAction = () => {
+    const timestamp = new Date().toISOString();
+    const logMessage = `Action performed at ${timestamp}`;
+
+    const command = createCommand({
+      execute: () => setLogs((prev) => [...prev, logMessage]),
+      undo: () => setLogs((prev) => prev.slice(0, -1)),
+      description: "Log timestamp",
+    });
+
+    execute(command);
+  };
+
+  return (
+    <div>
+      <button onClick={performAction}>Perform Custom Action</button>
+      <ul>
+        {logs.map((log, i) => (
+          <li key={i}>{log}</li>
+        ))}
+      </ul>
+      <HistoryControls />
+    </div>
+  );
+}
 ```
-┌──────────────────┐  1. Request undo  ┌──────────────────┐
-│                  │ ─────────────────> │                  │
-│  Component       │                    │  Command History │
-│                  │                    │  Store           │
-└──────────────────┘                    └──────────────────┘
-                                                 │
-                                                 │ 2. Pop from stack
-                                                 ▼
-┌──────────────────┐                    ┌──────────────────┐
-│                  │                    │                  │
-│  RedoStack       │                    │  UndoStack       │
-│                  │                    │                  │
-└──────────────────┘                    └──────────────────┘
-         ▲                                       │
-         │ 4. Push command                       │ 3. Get last command
-         │                                       │
-┌────────┴───────────┐                  ┌────────▼───────────┐
-│                    │  5. Call undo()  │                    │
-│  Command History   │ <────────────────┤   Last Command     │
-│  Store             │                  │                    │
-└────────────────────┘                  └────────────────────┘
-                                                 │
-                                                 │ 6. Restore state
-                                                 ▼
-                                        ┌──────────────────┐
-                                        │                  │
-                                        │  Application     │
-                                        │  State           │
-                                        │                  │
-                                        └──────────────────┘
+
+### 4. Composite Commands (`createCompositeCommand`)
+
+Group multiple commands into one atomic undo/redo operation.
+
+```typescript
+import {
+  useHistoryStateContext,
+  createCompositeCommand,
+  createValueChangeCommand,
+} from "../StateHistory";
+import { useHistoryState } from "../StateHistory"; // For example state
+
+function CompositeActionComponent() {
+  const { execute } = useHistoryStateContext();
+  const [valueA, setValueA] = useHistoryState<number>("valueA/set", 0);
+  const [valueB, setValueB] = useHistoryState<string>("valueB/set", "abc");
+
+  const performCompositeAction = () => {
+    const newValueA = valueA + 10;
+    const newValueB = valueB + "x";
+
+    // Create individual commands using the registry for persistence
+    const commandA = createValueChangeCommand("valueA/set", valueA, newValueA);
+    const commandB = createValueChangeCommand("valueB/set", valueB, newValueB);
+
+    // Combine them
+    const composite = createCompositeCommand(
+      [commandA, commandB],
+      `Set A to ${newValueA} and B to ${newValueB}`
+    );
+
+    // Execute the composite command
+    // Note: The individual setValue calls from useHistoryState are bypassed here.
+    // The composite command's execute function handles the state updates.
+    execute(composite);
+  };
+
+  return (
+    <div>
+      <p>Value A: {valueA}</p>
+      <p>Value B: {valueB}</p>
+      <button onClick={performCompositeAction}>Perform Composite Action</button>
+      <HistoryControls />
+    </div>
+  );
+}
 ```
+
+### 5. Persistence
+
+Enable persistence by setting `defaultPersistent={true}` or providing a `storageKey` on the `StateHistoryProvider`. 
+
+For persistence to work correctly:
+- When using `useHistoryState` or `useTrackableState` hooks, registration is handled automatically
+- For custom commands, use `createValueChangeCommand` or `createRegisteredCommand` after registering with `registerCommand` or `registerValueChangeCommand`
+
+```typescript
+// In your main application setup
+<StateHistoryProvider defaultPersistent={true} storageKey="myAppHistory">
+  <App />
+</StateHistoryProvider>;
+
+// --- Or toggle persistence via UI ---
+
+import { HistoryControls, useHistoryStateContext } from "../StateHistory";
+
+function PersistenceToggle() {
+  const { isPersistent, togglePersistence } = useHistoryStateContext();
+  return (
+    <div>
+      <label>
+        <input
+          type="checkbox"
+          checked={isPersistent}
+          onChange={togglePersistence}
+        />
+        Enable Persistence
+      </label>
+      <HistoryControls showPersistenceToggle={true} /> {/* Or use the built-in toggle */}
+    </div>
+  );
+}
+```
+
+### 6. UI Controls (`HistoryControls`)
+
+Use the `HistoryControls` component to render standard Undo, Redo, and Clear buttons.
+
+```typescript
+import { HistoryControls } from "../StateHistory";
+
+function MyComponent() {
+  // ... component logic using useHistoryState or useTrackableState
+  return (
+    <div>
+      {/* ... other UI */}
+      <div className="undo-redo-controls">
+        <HistoryControls />
+      </div>
+      {/* Optional: Show persistence toggle */}
+      <div className="persistence-controls">
+        <HistoryControls
+          showPersistenceToggle={true}
+          persistenceLabel="Save History"
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+You can also provide custom button components or a completely custom render function.
+
+## API Reference (Core Exports)
+
+- **Providers:**
+  - `StateHistoryProvider`: Context provider component.
+- **Hooks:**
+  - `useHistoryStateContext`: Accesses the history state and actions.
+  - `useHistoryState`: Manages simple state with automatic history tracking.
+  - `useTrackableState`: Integrates history tracking with existing state setters.
+- **Components:**
+  - `HistoryControls`: Renders undo/redo/clear UI controls.
+- **Command Creation:**
+  - `createCommand`: Creates a basic (non-serializable) `StateChange`.
+  - `createCompositeCommand`: Creates a command that groups others.
+  - `createValueChangeCommand`: Creates a serializable command for simple value changes (requires registration).
+  - `createRegisteredCommand`: Creates a serializable command using a registered type and parameters.
+- **Command Registry:**
+  - `registerCommand`: Registers a custom command type with execute/undo logic.
+  - `registerValueChangeCommand`: Helper to register simple value change command types.
+  - `getCommand`, `hasCommand`: Check the registry.
+  - `hydrateCommand`, `dehydrateCommand`: Used internally for persistence.
+- **Types:**
+  - `StateChange`: Interface for command objects.
+  - `StateHistoryContextType`: Type for the history context.
+  - `StateHistoryProviderProps`: Props for the provider.
+  - `HistoryControlsProps`, `HistoryButtonProps`: Props for UI controls.
+  - `SerializableStateChange`, `CommandFunction`: Types related to the registry.
 
 ## Directory Structure
 
 ```
-UndoRedo/
-├── components/           # UI components for undo/redo
-├── context/              # React context for command history
-├── store/                # Zustand store implementation
+src/StateHistory/
+├── components/           # UI components (HistoryControls)
+│   └── HistoryControls.tsx
+│   └── HistoryControls.test.tsx
+├── context/              # React context and reducer
+│   └── StateHistoryContext.tsx
+│   └── StateHistoryContext.test.tsx
+│   └── StateHistoryReducer.ts
+│   └── StateHistoryReducer.test.tsx
+├── hooks/                # Core hooks
+│   └── useTrackableState.ts
+│   └── useTrackableState.test.tsx # (Assuming tests exist)
 ├── types/                # TypeScript interfaces and types
+│   └── index.ts
 ├── utils/                # Helper utilities
-└── README.md             # This documentation
+│   └── stateChangeUtils.ts
+│   └── stateChangeRegistry.ts
+│   └── persistenceUtils.ts
+│   └── renderUtils.ts # (Helper for safe state updates)
+└── index.tsx             # Main export file
 ```
-
-## How It Works
-
-1. Operations that modify state are wrapped as Command objects
-2. When executed, these commands:
-   - Perform the operation
-   - Store information needed to undo the operation
-   - Get added to the undo stack
-3. When undo is requested:
-   - The most recent command is popped from the undo stack
-   - Its `undo()` method is called
-   - The command is pushed to the redo stack
-4. When redo is requested:
-   - The most recent undone command is popped from the redo stack
-   - Its `execute()` method is called
-   - The command is pushed back to the undo stack
-
-## Usage Guide
-
-### Basic Setup
-
-1. Wrap your app with the UndoRedo provider:
-
-```tsx
-import { StateHistoryProvider } from '../UndoRedo';
-
-const App = () => (
-  <StateHistoryProvider>
-    <YourApplication />
-  </StateHistoryProvider>
-);
-```
-
-### Using Domain-Specific Commands
-
-Domain modules like `Node` and `Edge` provide hooks that return commands specific to that domain:
-
-```tsx
-// In a component working with nodes
-import { useNodeCommands } from '../../Node/hooks/useNodeCommands';
-
-const NodeComponent = () => {
-  const { addNode, updateNode, deleteNode } = useNodeCommands();
-  
-  const handleAddNode = () => {
-    // This operation is automatically added to undo history
-    addNode(newNode);
-  };
-  
-  const handleUpdateNode = () => {
-    updateNode(modifiedNode);
-  };
-  
-  const handleDeleteNode = () => {
-    deleteNode(nodeId);
-  };
-  
-  return (/* Component JSX */);
-};
-```
-
-### Creating Custom Commands
-
-For operations not covered by existing domain hooks:
-
-```tsx
-import { createCommand, useStateHistory } from '../UndoRedo';
-
-const CustomComponent = () => {
-  const { execute } = useStateHistory();
-  const [value, setValue] = useState('');
-  
-  const handleChange = (newValue: string) => {
-    const oldValue = value;
-    
-    const command = createCommand({
-      execute: () => setValue(newValue),
-      undo: () => setValue(oldValue),
-      description: `Change value from "${oldValue}" to "${newValue}"`
-    });
-    
-    execute(command);
-  };
-};
-```
-
-### Complex Operations (Composite Commands)
-
-For operations that involve multiple steps:
-
-```tsx
-import { createCompositeCommand, useStateHistory } from '../UndoRedo';
-import { useNodeCommands } from '../../Node/hooks/useNodeCommands';
-
-const ComplexComponent = () => {
-  const { execute } = useStateHistory();
-  const { commands: nodeCommands } = useNodeCommands();
-  
-  const handleComplexOperation = () => {
-    // Create individual commands
-    const addNodeCommand = nodeCommands.createAddNodeCommand(newNode);
-    const updateNodeCommand = nodeCommands.createUpdateNodeCommand(existingNode);
-    
-    // Combine into a composite command
-    const compositeCommand = createCompositeCommand(
-      [addNodeCommand, updateNodeCommand],
-      'Complex node operation'
-    );
-    
-    // Execute as a single undoable operation
-    execute(compositeCommand);
-  };
-};
-```
-
-### Accessing Undo/Redo State
-
-To check if undo/redo operations are available:
-
-```tsx
-import { useStateHistory } from '../UndoRedo';
-
-const StatusComponent = () => {
-  const { canUndo, canRedo } = useStateHistory();
-  
-  return (
-    <div>
-      <span>Can undo: {canUndo ? 'Yes' : 'No'}</span>
-      <span>Can redo: {canRedo ? 'Yes' : 'No'}</span>
-    </div>
-  );
-};
-```
-
-### Keyboard Shortcuts
-
-The system automatically integrates with keyboard shortcuts. Default bindings:
-- **Ctrl+Z**: Undo
-- **Ctrl+Y** or **Ctrl+Shift+Z**: Redo
 
 ## Best Practices
 
-1. **Deep Clone State**: Always deep clone objects to prevent reference mutations:
-   ```tsx
-   const stateCopy = JSON.parse(JSON.stringify(originalState));
-   ```
-   
-   Or use the provided utility:
-   ```tsx
-   import { deepClone } from '../UndoRedo';
-   const stateCopy = deepClone(originalState);
-   ```
-
-2. **Command Descriptions**: Add meaningful descriptions to commands to help with debugging:
-   ```tsx
-   createCommand({
-     execute: () => {...},
-     undo: () => {...},
-     description: 'Meaningful description of what this command does'
-   });
-   ```
-
-3. **Command Validation**: Always validate state before creating commands:
-   ```tsx
-   const createUpdateCommand = (item) => {
-     const original = getOriginalItem(item.id);
-     if (!original) {
-       console.warn('Cannot create command: Item not found');
-       return null;
-     }
-     // Create and return command
-   };
-   ```
-
-4. **Handle Command Failures**: Check for null/undefined commands:
-   ```tsx
-   const command = createUpdateCommand(item);
-   if (command) execute(command);
-   ```
-
-## Architecture Decisions
-
-### Decoupled Domain Logic
-
-Domain-specific commands (for nodes, edges, etc.) are defined in their respective modules to keep the UndoRedo system generic and domain modules focused on their concerns.
-
-### Command vs Registry Pattern
-
-While the UI components use a Registry pattern for flexible registration, the undo/redo system uses the Command pattern as it's specifically designed for operation tracking and reversal.
-
-### State Management
-
-Zustand is used for managing command history state for consistency with the rest of the application's state management approach.
+- **Unique Command Names:** Use distinct `commandType` strings when using `useHistoryState`, `useTrackableState`, or registering commands, especially if using persistence. Prefixing with the feature area (e.g., `'counter/increment'`, `'userProfile/updateName'`) is recommended.
+- **Automatic Registration:** Both `useHistoryState` and `useTrackableState` automatically register command types internally, so manual registration is only needed for custom commands that aren't created with these hooks.
+- **Immutability:** Ensure your `execute` and `undo` functions handle state immutably, especially when dealing with objects or arrays.
+- **Descriptions:** Provide clear `description` strings when creating commands for better debugging and potential UI display.

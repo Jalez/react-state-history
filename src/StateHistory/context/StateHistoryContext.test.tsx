@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { 
-  StateHistoryProvider, 
-  useStateHistoryContext 
-} from './StateHistoryContext';
-import { setupMockLocalStorage } from '../../test/mockLocalStorage';
-import { StateChange } from '../types';
+/** @format */
 
-describe('StateHistoryContext', () => {
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import {
+  StateHistoryProvider,
+  useHistoryStateContext,
+} from "./StateHistoryContext";
+import { setupMockLocalStorage } from "../../test/mockLocalStorage";
+import { StateChange } from "../types";
+
+describe("StateHistoryContext", () => {
   const { restoreLocalStorage } = setupMockLocalStorage();
-  
+
   // Cleanup after each test
   afterEach(() => {
     localStorage.clear();
@@ -19,16 +21,16 @@ describe('StateHistoryContext', () => {
 
   // Custom matcher for StateChange history tests
   function expectCommandHistory(
-    result: { current: ReturnType<typeof useStateHistoryContext> },
-    expectedProps: Partial<ReturnType<typeof useStateHistoryContext>>
+    result: { current: ReturnType<typeof useHistoryStateContext> },
+    expectedProps: Partial<ReturnType<typeof useHistoryStateContext>>
   ) {
     Object.entries(expectedProps).forEach(([key, value]) => {
       expect(result.current[key as keyof typeof result.current]).toEqual(value);
     });
   }
 
-  it('should initialize with expected values', () => {
-    const { result } = renderHook(() => useStateHistoryContext(), {
+  it("should initialize with expected values", () => {
+    const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
         <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
@@ -41,24 +43,24 @@ describe('StateHistoryContext', () => {
     });
 
     // Check that methods are defined
-    expect(typeof result.current.undo).toBe('function');
-    expect(typeof result.current.redo).toBe('function');
-    expect(typeof result.current.execute).toBe('function');
-    expect(typeof result.current.clear).toBe('function');
+    expect(typeof result.current.undo).toBe("function");
+    expect(typeof result.current.redo).toBe("function");
+    expect(typeof result.current.execute).toBe("function");
+    expect(typeof result.current.clear).toBe("function");
   });
 
-  it('should execute commands and update state', () => {
+  it("should execute commands and update state", () => {
     const mockExecute = vi.fn();
     const mockUndo = vi.fn();
-    
+
     const testCommand: StateChange = {
       execute: mockExecute,
       undo: mockUndo,
-      id: 'test-StateChange',
-      description: 'Test StateChange'
+      id: "test-StateChange",
+      description: "Test StateChange",
     };
 
-    const { result } = renderHook(() => useStateHistoryContext(), {
+    const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
         <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
@@ -78,18 +80,18 @@ describe('StateHistoryContext', () => {
     expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 
-  it('should support undo/redo operations', () => {
+  it("should support undo/redo operations", () => {
     const mockExecute = vi.fn();
     const mockUndo = vi.fn();
-    
+
     const testCommand: StateChange = {
       execute: mockExecute,
       undo: mockUndo,
-      id: 'test-StateChange',
-      description: 'Test StateChange'
+      id: "test-StateChange",
+      description: "Test StateChange",
     };
 
-    const { result } = renderHook(() => useStateHistoryContext(), {
+    const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
         <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
@@ -119,15 +121,15 @@ describe('StateHistoryContext', () => {
     expect(mockExecute).toHaveBeenCalledTimes(2); // Initial + redo
   });
 
-  it('should clear StateChange history', () => {
+  it("should clear StateChange history", () => {
     const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
-      id: 'test-StateChange',
-      description: 'Test StateChange'
+      id: "test-StateChange",
+      description: "Test StateChange",
     };
 
-    const { result } = renderHook(() => useStateHistoryContext(), {
+    const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
         <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
@@ -147,12 +149,10 @@ describe('StateHistoryContext', () => {
     expectCommandHistory(result, { canUndo: false, canRedo: false });
   });
 
-  it('should support toggling persistence', () => {
-    const { result } = renderHook(() => useStateHistoryContext(), {
+  it("should support toggling persistence", () => {
+    const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
-        <StateHistoryProvider 
-          storageKey="test-persistence"
-        >
+        <StateHistoryProvider storageKey="test-persistence">
           {children}
         </StateHistoryProvider>
       ),
@@ -165,8 +165,8 @@ describe('StateHistoryContext', () => {
     const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
-      id: 'test',
-      description: 'Test StateChange'
+      id: "test",
+      description: "Test StateChange",
     };
 
     act(() => {
@@ -178,7 +178,7 @@ describe('StateHistoryContext', () => {
     expectCommandHistory(result, { isPersistent: true });
 
     // Verify something was saved to localStorage
-    expect(localStorage.getItem('undoredo_history_test-persistence')).toBeTruthy();
+    expect(localStorage.getItem("state_history_test-persistence")).toBeTruthy();
 
     // Toggle off
     act(() => {
@@ -189,28 +189,28 @@ describe('StateHistoryContext', () => {
     expectCommandHistory(result, { isPersistent: false });
 
     // Storage should be cleared
-    expect(localStorage.getItem('undoredo_history_test-persistence')).toBeNull();
+    expect(localStorage.getItem("state_history_test-persistence")).toBeNull();
   });
 
-  it('should load state from storage on initialization', () => {
+  it("should load state from storage on initialization", () => {
     // First create and save a state
     const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
-      id: 'test',
-      description: 'Restored StateChange'
+      id: "test",
+      description: "Restored StateChange",
     };
 
-    const { result: initialResult, unmount } = renderHook(() => useStateHistoryContext(), {
-      wrapper: ({ children }) => (
-        <StateHistoryProvider 
-          storageKey="test-load"
-          defaultPersistent={true}
-        >
-          {children}
-        </StateHistoryProvider>
-      ),
-    });
+    const { result: initialResult, unmount } = renderHook(
+      () => useHistoryStateContext(),
+      {
+        wrapper: ({ children }) => (
+          <StateHistoryProvider storageKey="test-load" defaultPersistent={true}>
+            {children}
+          </StateHistoryProvider>
+        ),
+      }
+    );
 
     // Execute a StateChange and ensure it's persisted
     act(() => {
@@ -218,24 +218,25 @@ describe('StateHistoryContext', () => {
     });
 
     // Make sure the state was persisted
-    expect(localStorage.getItem('undoredo_history_test-load')).toBeTruthy();
+    expect(localStorage.getItem("state_history_test-load")).toBeTruthy();
 
     // Unmount to simulate page reload
     unmount();
 
     // Now create a new hook that should load the persisted state
-    const { result: newResult } = renderHook(() => useStateHistoryContext(), {
+    const { result: newResult } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
-        <StateHistoryProvider 
-          storageKey="test-load"
-          defaultPersistent={true} 
-        >
+        <StateHistoryProvider storageKey="test-load" defaultPersistent={true}>
           {children}
         </StateHistoryProvider>
       ),
     });
 
     // The new hook should have the persisted state
-    expectCommandHistory(newResult, { canUndo: true, canRedo: false, isPersistent: true });
+    expectCommandHistory(newResult, {
+      canUndo: true,
+      canRedo: false,
+      isPersistent: true,
+    });
   });
 });

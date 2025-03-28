@@ -8,7 +8,7 @@
 ## Core Concept Renames
 2. Rename main provider and hooks:
    - StateHistoryProvider -> StateHistoryProvider
-   - useStateHistory -> useStateHistory
+   - useHistoryState -> useHistoryState
    - StateHistoryContext -> StateHistoryContext
    - StateHistory -> StateHistoryState
    - CommandHistoryReducer -> StateHistoryReducer
@@ -16,7 +16,7 @@
 3. Hook name improvements:
    - useTrackableState -> useTrackableState
      Reasoning: More intuitive name for a hook that creates trackable state changes
-   - useStateHistory -> useStateWithHistory
+   - useHistoryState -> useStateWithHistory
      Reasoning: More explicit about what the hook does - creates state with history tracking
 
 4. Component renames:

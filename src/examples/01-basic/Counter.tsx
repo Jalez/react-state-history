@@ -1,35 +1,33 @@
 /**
  * Basic Example: Simple Counter with Undo/Redo
  *
- * This example demonstrates the most basic usage of the undo-redo-ts library
+ * This example demonstrates the most basic usage of the react-state-history library
  * with a simple counter that can be incremented, decremented, and reset.
  *
  * Key concepts demonstrated:
  * - Setting up StateHistoryProvider
- * - Using the useStateHistory hook for simplified state management
+ * - Using the useHistoryState hook for simplified state management
  * - Basic undo/redo operations
+ *
+ * @format
  */
-import {
-  StateHistoryProvider,
-  useStateHistory,
-} from "../../StateHistory";
+
+import { StateHistoryProvider, useHistoryState } from "../../StateHistory";
 
 import HistoryControls from "../../StateHistory/components/HistoryControls";
 // Reusable counter logic component with undo/redo functionality
-export const Counter = ({
-  initialValue = 0,
-}: {
-  initialValue?: number;
-}) => {
-  // useStateHistory provides a value and a setter that automatically creates commands
-  const [count, setCount, resetCount] = useStateHistory<number>(
+export const Counter = ({ initialValue = 0 }: { initialValue?: number }) => {
+  // useHistoryState provides a value and a setter that automatically creates commands
+  const [count, setCount, resetCount] = useHistoryState<number>(
     "counter/setValue", // StateChange type identifier
     initialValue // Initial value
   );
 
   // No need to manually create commands - the hook handles that for us
-  const increment = () => setCount(count + 1, `Increment counter to ${count + 1}`);
-  const decrement = () => setCount(count - 1, `Decrement counter to ${count - 1}`);
+  const increment = () =>
+    setCount(count + 1, `Increment counter to ${count + 1}`);
+  const decrement = () =>
+    setCount(count - 1, `Decrement counter to ${count - 1}`);
   const reset = () => resetCount(); // Built-in reset functionality
 
   return (
@@ -43,11 +41,10 @@ export const Counter = ({
         <p>Count: {count}</p>
       </div>
 
-      <div className="undo-redo">
-      </div>
+      <div className="undo-redo"></div>
     </div>
-  )
-}
+  );
+};
 
 // Export the wrapped counter example
 export const CounterExample = () => (
@@ -55,9 +52,10 @@ export const CounterExample = () => (
     <h2>Basic Example: Counter with Undo/Redo</h2>
     <div className="description">
       <p>
-        This counter demonstrates basic StateChange creation and execution using the
-        simplified <code>useStateHistory</code> hook. Each button press creates
-        a StateChange that is added to the history stack.
+        This counter demonstrates basic StateChange creation and execution using
+        the simplified <code>useHistoryState</code> hook. Each button press
+        creates a StateChange that is added to the history stack. State
+        management is fully handled by the useHistoryState hook.
       </p>
       <p>
         Try changing the counter value and then using the undo/redo buttons.

@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "A flexible StateChange Pattern implementation for undo/redo functionality in TypeScript and React",
+  "description": "A flexible React library for managing state history with undo/redo functionality",
   "author": "Jaakko Rajala",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jalez/undo-redo-ts"
+    "url": "https://github.com/jalez/react-state-history"
   },
   "keywords": [
     "typescript",
@@ -17,14 +17,14 @@
     "redo",
     "history"
   ],
-  "main": "dist/undo-redo-ts.umd.js",
-  "module": "dist/undo-redo-ts.es.js",
+  "main": "dist/react-state-history.umd.js",
+  "module": "dist/react-state-history.es.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/undo-redo-ts.es.js",
-      "require": "./dist/undo-redo-ts.umd.js"
+      "import": "./dist/react-state-history.es.js",
+      "require": "./dist/react-state-history.umd.js"
     }
   },
   "files": [
