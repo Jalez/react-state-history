@@ -5,25 +5,25 @@
  * with a simple counter that can be incremented, decremented, and reset.
  *
  * Key concepts demonstrated:
- * - Setting up UndoRedoProvider
- * - Using the useHistoryState hook for simplified state management
+ * - Setting up StateHistoryProvider
+ * - Using the useStateHistory hook for simplified state management
  * - Basic undo/redo operations
  */
 import {
-  UndoRedoProvider,
-  useHistoryState,
-} from "../../UndoRedo";
+  StateHistoryProvider,
+  useStateHistory,
+} from "../../StateHistory";
 
-import UndoRedoControls from "../../UndoRedo/components/UndoRedoControls";
+import HistoryControls from "../../StateHistory/components/HistoryControls";
 // Reusable counter logic component with undo/redo functionality
 export const Counter = ({
   initialValue = 0,
 }: {
   initialValue?: number;
 }) => {
-  // useHistoryState provides a value and a setter that automatically creates commands
-  const [count, setCount, resetCount] = useHistoryState<number>(
-    "counter/setValue", // Command type identifier
+  // useStateHistory provides a value and a setter that automatically creates commands
+  const [count, setCount, resetCount] = useStateHistory<number>(
+    "counter/setValue", // StateChange type identifier
     initialValue // Initial value
   );
 
@@ -51,19 +51,19 @@ export const Counter = ({
 
 // Export the wrapped counter example
 export const CounterExample = () => (
-  <UndoRedoProvider>
+  <StateHistoryProvider>
     <h2>Basic Example: Counter with Undo/Redo</h2>
     <div className="description">
       <p>
-        This counter demonstrates basic command creation and execution using the
-        simplified <code>useHistoryState</code> hook. Each button press creates
-        a command that is added to the history stack.
+        This counter demonstrates basic StateChange creation and execution using the
+        simplified <code>useStateHistory</code> hook. Each button press creates
+        a StateChange that is added to the history stack.
       </p>
       <p>
         Try changing the counter value and then using the undo/redo buttons.
       </p>
     </div>
-    <UndoRedoControls />
+    <HistoryControls />
     <Counter />
-  </UndoRedoProvider>
+  </StateHistoryProvider>
 );

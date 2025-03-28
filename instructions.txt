@@ -1,7 +1,7 @@
 I understand that you'd like to create a separate Vite project for the UndoRedo functionality as a standalone library in the next chat. Here are the instructions for continuing where we left off:
 
 Next Steps: Creating a Standalone UndoRedo Library
-We've successfully implemented a Command Pattern-based undo/redo system within our mindmap application. The next step is to extract this functionality into a standalone library, which will make it more reusable across projects.
+We've successfully implemented a StateChange Pattern-based undo/redo system within our mindmap application. The next step is to extract this functionality into a standalone library, which will make it more reusable across projects.
 
 Plan for Next Session
 Create a new Vite project for the standalone library:
@@ -18,27 +18,27 @@ Remove application-specific code
 Create a clean API surface
 Key files to include:
 
-Core command types and interfaces
-Command history store
+Core StateChange types and interfaces
+StateChange history store
 Utility functions for creating commands
 React hooks and context providers
 Features to implement:
 
-Command creation utilities
-Command history management
-Composite command support
+StateChange creation utilities
+StateChange history management
+Composite StateChange support
 React integration components
 Current Structure to Extract
 The current implementation includes:
 
-Command interface in types/index.ts
-Command history store in store/useCommandHistoryStore.ts
-React context in context/CommandHistoryContext.tsx
+StateChange interface in types/index.ts
+StateChange history store in store/useStateHistoryStore.ts
+React context in context/StateHistoryContext.tsx
 Utilities in utils/commandUtils.ts
 Domain-Specific Implementation
-In the new library, we should keep the core Command Pattern infrastructure but make the domain-specific parts (node commands, edge commands) into examples or optional extensions.
+In the new library, we should keep the core StateChange Pattern infrastructure but make the domain-specific parts (node commands, edge commands) into examples or optional extensions.
 
-The hooks like useNodeCommands and useEdgeCommands should be used as reference for how consumers can implement their own domain-specific command factories.
+The hooks like useNodeCommands and useEdgeCommands should be used as reference for how consumers can implement their own domain-specific StateChange factories.
 
 
 Issues: Persistence doesnt seem to be working in the example when I check the persistence checkbox. Also for the sake of simplicity, we shouldnt have two counters that basically perform the same but look different. Reuse components there if at all possible in te Persistent Counter example.

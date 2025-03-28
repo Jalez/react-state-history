@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/UndoRedo/context/CommandHistoryContext.tsx</title>
+    <title>Code coverage report for src/UndoRedo/context/StateHistoryContext.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/UndoRedo/context</a> CommandHistoryContext.tsx</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/UndoRedo/context</a> StateHistoryContext.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -427,9 +427,9 @@ import React, {
   useState,
 } from "react";
 import { 
-  Command, 
-  CommandHistoryContextType, 
-  CommandHistoryProviderProps, 
+  StateChange, 
+  StateHistoryContext, 
+  StateHistoryProviderProps, 
    
 } from "../types";
 import { 
@@ -445,13 +445,13 @@ import {
 import { useDeferredActions } from "../utils/renderUtils";
 &nbsp;
 // Create the context
-const CommandHistoryContext = createContext&lt;CommandHistoryContextType | undefined&gt;(undefined);
+const StateHistoryContext = createContext&lt;StateHistoryContext | undefined&gt;(undefined);
 &nbsp;
 /**
- * Provider component for command history
- * Makes command history state and methods available to all child components
+ * Provider component for StateChange history
+ * Makes StateChange history state and methods available to all child components
  */
-export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt; = ({
+export const StateHistoryProvider: React.FC&lt;StateHistoryProviderProps&gt; = ({
   children,
   maxStackSize,
   storageKey,
@@ -504,15 +504,15 @@ export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt;
     initialLoadAttempted,
   ]);
 &nbsp;
-  // Command execution with safe state updates
-  const execute = useCallback((command: Command) =&gt; {
-    if (!command) <span class="branch-0 cbranch-no" title="branch not covered" >return;</span>
+  // StateChange execution with safe state updates
+  const execute = useCallback((StateChange: StateChange) =&gt; {
+    if (!StateChange) <span class="branch-0 cbranch-no" title="branch not covered" >return;</span>
     
     scheduleDeferredAction(() =&gt; {
-      // Execute command first, outside of reducer
-      command.execute();
+      // Execute StateChange first, outside of reducer
+      StateChange.execute();
       // Then update the state
-      dispatch({ type: "EXECUTE", command });
+      dispatch({ type: "EXECUTE", StateChange });
     });
   }, [scheduleDeferredAction]);
 &nbsp;
@@ -521,7 +521,7 @@ export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt;
     if (state.undoStack.length === 0) <span class="branch-0 cbranch-no" title="branch not covered" >return;</span>
     
     scheduleDeferredAction(() =&gt; {
-      // Get the command to undo
+      // Get the StateChange to undo
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
       // Execute undo first, outside of reducer
       commandToUndo.undo();
@@ -535,7 +535,7 @@ export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt;
     if (state.redoStack.length === 0) <span class="branch-0 cbranch-no" title="branch not covered" >return;</span>
     
     scheduleDeferredAction(() =&gt; {
-      // Get the command to redo
+      // Get the StateChange to redo
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
       // Execute first, outside of reducer
       commandToRedo.execute();
@@ -544,7 +544,7 @@ export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt;
     });
   }, [state.redoStack, scheduleDeferredAction]);
 &nbsp;
-  // Clear command history
+  // Clear StateChange history
   const clear = useCallback(() =&gt; {
     dispatch({ type: "CLEAR" });
   }, []);
@@ -564,7 +564,7 @@ export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt;
   }, [state.isPersistent, finalStorageKey]);
 &nbsp;
   // Create context value
-  const contextValue: CommandHistoryContextType = {
+  const contextValue: StateHistoryContext = {
     ...state,
     execute,
     undo,
@@ -575,21 +575,21 @@ export const CommandHistoryProvider: React.FC&lt;CommandHistoryProviderProps&gt;
   };
 &nbsp;
   return (
-    &lt;CommandHistoryContext.Provider value={contextValue}&gt;
+    &lt;StateHistoryContext.Provider value={contextValue}&gt;
       {children}
-    &lt;/CommandHistoryContext.Provider&gt;
+    &lt;/StateHistoryContext.Provider&gt;
   );
 };
 &nbsp;
 /**
- * Hook to use command history context
- * @throws Error if used outside of a CommandHistoryProvider
+ * Hook to use StateChange history context
+ * @throws Error if used outside of a StateHistoryProvider
  */
-export const useCommandHistory = (): CommandHistoryContextType =&gt; {
-  const context = useContext(CommandHistoryContext);
+export const useStateHistory = (): StateHistoryContext =&gt; {
+  const context = useContext(StateHistoryContext);
   if (context === undefined) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
 <span class="cstat-no" title="statement not covered" >    throw new Error(</span>
-<span class="cstat-no" title="statement not covered" >      "useCommandHistory must be used within a CommandHistoryProvider"</span>
+<span class="cstat-no" title="statement not covered" >      "useStateHistory must be used within a StateHistoryProvider"</span>
 <span class="cstat-no" title="statement not covered" >    );</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
   return context;

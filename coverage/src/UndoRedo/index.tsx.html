@@ -299,13 +299,13 @@
 <span class="cline-any cline-yes">23x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/** @format */
 import React from "react";
-import { CommandHistoryProvider } from "./context/CommandHistoryContext";
+import { StateHistoryProvider } from "./context/StateHistoryContext";
 &nbsp;
 // Export core functionality
 export {
-  CommandHistoryProvider,
-  useCommandHistory,
-} from "./context/CommandHistoryContext";
+  StateHistoryProvider,
+  useStateHistory,
+} from "./context/StateHistoryContext";
 &nbsp;
 // Export reducer and related constants
 export {
@@ -316,11 +316,11 @@ export {
 &nbsp;
 // Export simplified hooks
 export {
-  useValueCommand,
-  useHistoryState,
-} from "./hooks/useValueCommand";
+  useTrackableState,
+  useStateHistory,
+} from "./hooks/useTrackableState";
 &nbsp;
-// Export command utilities
+// Export StateChange utilities
 export {
   createCompositeCommand,
   createCommand,
@@ -331,7 +331,7 @@ export {
   createValueChangeCommand,
 } from "./utils/commandUtils";
 &nbsp;
-// Export command registry
+// Export StateChange registry
 export {
   registerCommand,
   getCommand,
@@ -344,7 +344,7 @@ export {
 export type {
   CommandFunction,
   CommandRegistry,
-  SerializableCommand,
+  SerializableStateChange,
 } from "./utils/commandRegistry";
 &nbsp;
 // Export persistence utilities
@@ -363,55 +363,55 @@ export {
 } from "./utils/renderUtils";
 &nbsp;
 // Export components
-export { default as UndoRedoControls } from "./components/UndoRedoControls";
+export { default as HistoryControls } from "./components/HistoryControls";
 export type {
-  UndoRedoControlsProps,
-  UndoRedoButtonProps,
-} from "./components/UndoRedoControls";
+  HistoryControlsProps,
+  HistoryButtonProps,
+} from "./components/HistoryControls";
 &nbsp;
 // Export registration types and component
-export { default as UndoRedoControlsRegistration } from "./UndoRedoControlsRegistration";
+export { default as HistoryControlsRegistry } from "./HistoryControlsRegistry";
 export type {
   RegisterControlFn,
   UnregisterControlFn,
-  UndoRedoRegistrationProps,
-} from "./UndoRedoControlsRegistration";
+  HistoryRegistrationProps,
+} from "./HistoryControlsRegistry";
 &nbsp;
 // Types
 export type { 
-  Command, 
-  CommandFactory, 
-  CommandHistoryState,
-  CommandHistoryAction,
-  CommandHistoryContextType,
-  CommandHistoryProviderProps
+  StateChange, 
+  StateChangeFactory, 
+  StateHistory,
+  StateHistoryAction,
+  StateHistoryContext,
+  StateHistoryProviderProps
 } from "./types";
 &nbsp;
 /**
- * UndoRedoProvider component
+ * StateHistoryProvider component
  * Provides undo/redo functionality to applications
  *
  * @example
  * ```jsx
- * &lt;UndoRedoProvider&gt;
+ * &lt;StateHistoryProvider&gt;
  *   &lt;YourApp /&gt;
- * &lt;/UndoRedoProvider&gt;
+ * &lt;/StateHistoryProvider&gt;
  * ```
  */
-export const UndoRedoProvider: React.FC&lt;{
+export const StateHistoryProvider: React.FC&lt;{
   children: React.ReactNode;
   maxStackSize?: number;
   storageKey?: string;
   defaultPersistent?: boolean;
 }&gt; = ({ children, maxStackSize, storageKey, defaultPersistent }) =&gt; {
   return (
-    &lt;CommandHistoryProvider
+    &lt;StateHistoryProvider
       maxStackSize={maxStackSize}
       storageKey={storageKey}
       defaultPersistent={defaultPersistent}
     &gt;
       {children}
-    &lt;/CommandHistoryProvider&gt;
+    &lt;/StateHistoryProvider&gt;
   );
 };
 &nbsp;</pre></td></tr></table></pre>

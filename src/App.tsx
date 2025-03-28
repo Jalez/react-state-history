@@ -56,7 +56,7 @@ function App() {
             4. Persistence
           </button>
           <button onClick={() => scrollToSection(registryRef)}>
-            5. Command Registry
+            5. StateChange Registry
           </button>
         </div>
       </header>

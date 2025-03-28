@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/UndoRedo/hooks/useValueCommand.ts</title>
+    <title>Code coverage report for src/UndoRedo/hooks/useTrackableState.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/UndoRedo/hooks</a> useValueCommand.ts</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/UndoRedo/hooks</a> useTrackableState.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -261,24 +261,24 @@
 <span class="cline-any cline-yes">99x</span>
 <span class="cline-any cline-yes">99x</span></td><td class="text"><pre class="prettyprint lang-js">/** @format */
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useCommandHistory } from '../context/CommandHistoryContext';
+import { useStateHistory } from '../context/StateHistoryContext';
 import { registerValueChangeCommand, createValueChangeCommand } from '../utils/commandUtils';
 &nbsp;
 /**
  * A hook that creates value change commands with minimal boilerplate
  * 
- * @param commandType Unique identifier for this command type
+ * @param commandType Unique identifier for this StateChange type
  * @param setValue Function to set the value (e.g., from useState)
  * @returns A function to update the value that automatically creates undo/redo commands
  */
-export function useValueCommand&lt;T&gt;(
+export function useTrackableState&lt;T&gt;(
   commandType: string,
   setValue: (value: T) =&gt; void
 ): (newValue: T, oldValue: T, description?: string) =&gt; void {
-  const { execute } = useCommandHistory();
+  const { execute } = useStateHistory();
   const isRegistered = useRef(false);
   
-  // Register the command type once
+  // Register the StateChange type once
   useEffect(() =&gt; {
     if (!isRegistered.current) {
       registerValueChangeCommand&lt;T&gt;(commandType, setValue);
@@ -286,39 +286,39 @@ export function useValueCommand&lt;T&gt;(
     }
   }, [commandType, setValue]);
 &nbsp;
-  // Return a function that creates and executes the command
+  // Return a function that creates and executes the StateChange
   return useCallback(
     (newValue: T, oldValue: T, description?: string) =&gt; {
-      const command = createValueChangeCommand(
+      const StateChange = createValueChangeCommand(
         commandType,
         oldValue,
         newValue,
 <span class="branch-0 cbranch-no" title="branch not covered" >        description || `Change value from ${String(oldValue)} to ${String(newValue)}`</span>
       );
       
-      execute(command);
+      execute(StateChange);
     },
     [commandType, execute]
   );
 }
 &nbsp;
 /**
- * A simpler version of useValueCommand for use with React's useState
+ * A simpler version of useTrackableState for use with React's useState
  * Automatically manages state and creates undoable commands
  * 
- * @param commandType Unique identifier for this command type
+ * @param commandType Unique identifier for this StateChange type
  * @param initialValue Initial value for the state
  * @returns A tuple of [value, setValue, resetValue]
  */
-export function useHistoryState&lt;T&gt;(
+export function useStateHistory&lt;T&gt;(
   commandType: string,
   initialValue: T
 ): [T, (newValue: T, description?: string) =&gt; void, () =&gt; void] {
   const [value, setValueDirect] = React.useState&lt;T&gt;(initialValue);
-  const { execute } = useCommandHistory();
+  const { execute } = useStateHistory();
   const isRegistered = useRef(false);
   
-  // Register the command type once
+  // Register the StateChange type once
   useEffect(() =&gt; {
     if (!isRegistered.current) {
       registerValueChangeCommand&lt;T&gt;(commandType, setValueDirect);
@@ -326,17 +326,17 @@ export function useHistoryState&lt;T&gt;(
     }
   }, [commandType]);
 &nbsp;
-  // Command-wrapped setter
+  // StateChange-wrapped setter
   const setValue = useCallback(
     (newValue: T, description?: string) =&gt; {
-      const command = createValueChangeCommand(
+      const StateChange = createValueChangeCommand(
         commandType,
         value,
         newValue,
         description || `Change from ${String(value)} to ${String(newValue)}`
       );
       
-      execute(command);
+      execute(StateChange);
     },
     [value, commandType, execute]
   );
@@ -344,14 +344,14 @@ export function useHistoryState&lt;T&gt;(
   // Reset to initial value
   const resetValue = useCallback(
     () =&gt; {
-      const command = createValueChangeCommand(
+      const StateChange = createValueChangeCommand(
         commandType,
         value,
         initialValue,
         `Reset to initial value: ${String(initialValue)}`
       );
       
-      execute(command);
+      execute(StateChange);
     },
     [value, initialValue, commandType, execute]
   );

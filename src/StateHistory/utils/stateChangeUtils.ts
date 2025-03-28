@@ -1,6 +1,6 @@
 /** @format */
-import { Command } from '../types';
-import { createRegistryCommand, registerCommand } from './commandRegistry';
+import { StateChange } from '../types';
+import { createRegistryCommand, registerCommand } from './stateChangeRegistry';
 
 /**
  * Generate a unique ID for commands
@@ -12,36 +12,36 @@ export function generateCommandId(): string {
 }
 
 /**
- * Creates a command with required properties
+ * Creates a StateChange with required properties
  */
 export function createCommand(options: {
   execute: () => void;
   undo: () => void;
   description?: string;
   id?: string;
-}): Command {
+}): StateChange {
   return {
     execute: options.execute,
     undo: options.undo,
-    description: options.description || 'Unnamed command',
+    description: options.description || 'Unnamed StateChange',
     id: options.id || generateCommandId(),
   };
 }
 
 /**
- * Creates a composite command from multiple commands
+ * Creates a composite StateChange from multiple commands
  */
-export function createCompositeCommand(commands: Command[], description?: string): Command {
+export function createCompositeCommand(commands: StateChange[], description?: string): StateChange {
   return {
     execute: () => commands.forEach(cmd => cmd.execute()),
     undo: () => [...commands].reverse().forEach(cmd => cmd.undo()),
-    description: description || 'Composite command',
+    description: description || 'Composite StateChange',
     id: generateCommandId(),
   };
 }
 
 /**
- * Analyzes a serialized command string to determine its behavior
+ * Analyzes a serialized StateChange string to determine its behavior
  * This is useful when dealing with persisted commands
  */
 export function analyzeCommandString(cmdString: string): { 
@@ -69,13 +69,13 @@ export function analyzeCommandString(cmdString: string): {
 }
 
 /**
- * Creates a registry-based command
+ * Creates a registry-based StateChange
  */
 export function createRegisteredCommand<T>(
   commandName: string, 
   params: T, 
   description?: string
-): Command<T> {
+): StateChange<T> {
   return createRegistryCommand(
     commandName,
     params,
@@ -85,7 +85,7 @@ export function createRegisteredCommand<T>(
 }
 
 /**
- * Registers a value change command
+ * Registers a value change StateChange
  * This is a common pattern for handling state changes
  */
 export function registerValueChangeCommand<T>(
@@ -106,14 +106,14 @@ export function registerValueChangeCommand<T>(
 }
 
 /**
- * Create a command that handles changing a value
+ * Create a StateChange that handles changing a value
  */
 export function createValueChangeCommand<T>(
   commandType: string,
   oldValue: T,
   newValue: T,
   description?: string
-): Command {
+): StateChange {
   return createRegisteredCommand(
     commandType,
     { oldValue, newValue },

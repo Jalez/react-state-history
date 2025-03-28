@@ -1,21 +1,21 @@
 import React from "react";
 import {
-  UndoRedoProvider, 
-  useCommandHistory,
-  useHistoryState,
-} from "../../UndoRedo";
-import UndoRedoControls from "../../UndoRedo/components/UndoRedoControls";
+  StateHistoryProvider, 
+  useStateHistoryContext,
+  useStateHistory,
+  HistoryControls
+} from "../../StateHistory";
 
 // Counter with registry-based persistence using the simplified hooks
 export const Counter = () => {
-  // The useHistoryState hook registers commands automatically
+  // The useStateHistory hook registers commands automatically
   // and handles persistence without any additional boilerplate
-  const [count, setCount, resetCount] = useHistoryState<number>(
+  const [count, setCount, resetCount] = useStateHistory<number>(
     "persistentCounter/setValue",
     0
   );
 
-  // Simple handlers that use the command-aware state setter
+  // Simple handlers that use the StateChange-aware state setter
   const increment = () => setCount(count + 1);
   const decrement = () => setCount(count - 1);
   const reset = () => resetCount();
@@ -43,7 +43,7 @@ const CustomRenderControls = () => {
     undo,
     redo,
     clear
-  } = useCommandHistory();
+  } = useStateHistoryContext();
 
   return (
     <div>
@@ -71,10 +71,10 @@ const CustomRenderControls = () => {
   );
 };
 
-// Wrap the counter with UndoRedoProvider with persistence enabled by default
+// Wrap the counter with StateHistoryProvider with persistence enabled by default
 export const PersistentCounterExample: React.FC = () => {
   return ( 
-    <UndoRedoProvider
+    <StateHistoryProvider
       storageKey="persistent-counter-example"
       defaultPersistent={true}
     >
@@ -85,12 +85,12 @@ export const PersistentCounterExample: React.FC = () => {
           Toggle persistence and reload the page to see the state persist.
         </p>
         <p>
-          The <code>useHistoryState</code> hook automatically handles command registration
+          The <code>useStateHistory</code> hook automatically handles StateChange registration
           and persistence with minimal code.
         </p>
       </div>
       <Counter />
-      <UndoRedoControls renderCustomControls={CustomRenderControls} />
-    </UndoRedoProvider>
+      <HistoryControls renderCustomControls={CustomRenderControls} />
+    </StateHistoryProvider>
   );
 };

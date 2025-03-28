@@ -208,25 +208,25 @@
  * with a simple counter that can be incremented, decremented, and reset.
  *
  * Key concepts demonstrated:
- * - Setting up UndoRedoProvider
- * - Using the useHistoryState hook for simplified state management
+ * - Setting up StateHistoryProvider
+ * - Using the useStateHistory hook for simplified state management
  * - Basic undo/redo operations
  */
 import {
-  UndoRedoProvider,
-  useHistoryState,
+  StateHistoryProvider,
+  useStateHistory,
 } from "../../UndoRedo";
 &nbsp;
-import UndoRedoControls from "../../UndoRedo/components/UndoRedoControls";
+import HistoryControls from "../../UndoRedo/components/HistoryControls";
 // Reusable counter logic component with undo/redo functionality
 export const Counter = ({
   initialValue = 0,
 }: {
   initialValue?: number;
 }) =&gt; {
-  // useHistoryState provides a value and a setter that automatically creates commands
-  const [count, setCount, resetCount] = useHistoryState&lt;number&gt;(
-    "counter/setValue", // Command type identifier
+  // useStateHistory provides a value and a setter that automatically creates commands
+  const [count, setCount, resetCount] = useStateHistory&lt;number&gt;(
+    "counter/setValue", // StateChange type identifier
     initialValue // Initial value
   );
 &nbsp;
@@ -254,21 +254,21 @@ export const Counter = ({
 &nbsp;
 // Export the wrapped counter example
 export const CounterExample = <span class="fstat-no" title="function not covered" >() =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >  &lt;UndoRedoProvider&gt;</span>
+<span class="cstat-no" title="statement not covered" >  &lt;StateHistoryProvider&gt;</span>
 <span class="cstat-no" title="statement not covered" >    &lt;h2&gt;Basic Example: Counter with Undo/Redo&lt;/h2&gt;</span>
 <span class="cstat-no" title="statement not covered" >    &lt;div className="description"&gt;</span>
 <span class="cstat-no" title="statement not covered" >      &lt;p&gt;</span>
-        This counter demonstrates basic command creation and execution using the
-<span class="cstat-no" title="statement not covered" >        simplified &lt;code&gt;useHistoryState&lt;/code&gt; hook. Each button press creates</span>
-        a command that is added to the history stack.
+        This counter demonstrates basic StateChange creation and execution using the
+<span class="cstat-no" title="statement not covered" >        simplified &lt;code&gt;useStateHistory&lt;/code&gt; hook. Each button press creates</span>
+        a StateChange that is added to the history stack.
 <span class="cstat-no" title="statement not covered" >      &lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >      &lt;p&gt;</span>
         Try changing the counter value and then using the undo/redo buttons.
 <span class="cstat-no" title="statement not covered" >      &lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >    &lt;/div&gt;</span>
-<span class="cstat-no" title="statement not covered" >    &lt;UndoRedoControls /&gt;</span>
+<span class="cstat-no" title="statement not covered" >    &lt;HistoryControls /&gt;</span>
 <span class="cstat-no" title="statement not covered" >    &lt;Counter /&gt;</span>
-<span class="cstat-no" title="statement not covered" >  &lt;/UndoRedoProvider&gt;</span>
+<span class="cstat-no" title="statement not covered" >  &lt;/StateHistoryProvider&gt;</span>
 );
 &nbsp;</pre></td></tr></table></pre>
 

@@ -233,11 +233,11 @@
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useEffect } from "react";
 import {
-  UndoRedoProvider,
+  StateHistoryProvider,
   registerCommand,
   registerValueChangeCommand,
 } from "../../UndoRedo";
-import UndoRedoControls from "../../UndoRedo/components/UndoRedoControls";
+import HistoryControls from "../../UndoRedo/components/HistoryControls";
 import { Counter } from "../01-basic/Counter";
 import { RegistryCounter } from "./RegistryCounter";
 &nbsp;
@@ -289,14 +289,14 @@ export const PersistentToggleCounter = () =&gt; {
         This example demonstrates toggling persistence on/off. The counter state
         will be preserved across page reloads when persistence is enabled.
       &lt;/p&gt;
-      &lt;UndoRedoProvider storageKey={STORAGE_KEY} defaultPersistent={false}&gt;
+      &lt;StateHistoryProvider storageKey={STORAGE_KEY} defaultPersistent={false}&gt;
         &lt;div className="legacy-example"&gt;
           &lt;h3&gt;Legacy Counter (Function String Serialization)&lt;/h3&gt;
           &lt;Counter /&gt;
         &lt;/div&gt;
 &nbsp;
         &lt;div className="registry-example"&gt;
-          &lt;h3&gt;Registry Counter (Command Registry)&lt;/h3&gt;
+          &lt;h3&gt;Registry Counter (StateChange Registry)&lt;/h3&gt;
           &lt;RegistryCounter /&gt;
         &lt;/div&gt;
         
@@ -305,13 +305,13 @@ export const PersistentToggleCounter = () =&gt; {
           page. The counter state will be preserved when persistence is enabled.
           &lt;br /&gt;
           &lt;strong&gt;Note:&lt;/strong&gt; The Registry Counter properly restores state on reload,
-          while the Legacy Counter will only preserve its value but not command functionality.
+          while the Legacy Counter will only preserve its value but not StateChange functionality.
         &lt;/div&gt;
-        &lt;UndoRedoControls
+        &lt;HistoryControls
           showPersistenceToggle={true}
           persistenceLabel="Enable State Persistence"
         /&gt;
-      &lt;/UndoRedoProvider&gt;
+      &lt;/StateHistoryProvider&gt;
     &lt;/div&gt;
   );
 };

@@ -1,9 +1,9 @@
 {
-  "name": "undo-redo-ts",
+  "name": "react-state-history",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "A flexible Command Pattern implementation for undo/redo functionality in TypeScript and React",
+  "description": "A flexible StateChange Pattern implementation for undo/redo functionality in TypeScript and React",
   "author": "Jaakko Rajala",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
   "keywords": [
     "typescript",
     "react",
-    "command-pattern",
+    "StateChange-pattern",
     "undo",
     "redo",
     "history"

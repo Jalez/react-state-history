@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Counter } from '../01-basic/Counter';
-import { UndoRedoProvider } from '../../UndoRedo';
+import { StateHistoryProvider } from '../../StateHistory';
 
-// Wrap Counter in UndoRedoProvider to provide the required context
+// Wrap Counter in StateHistoryProvider to provide the required context
 const CounterWithProvider = ({ initialValue }: { initialValue?: number }) => (
-  <UndoRedoProvider>
+  <StateHistoryProvider>
     <Counter initialValue={initialValue} />
-  </UndoRedoProvider>
+  </StateHistoryProvider>
 );
 
 describe('Counter component', () => {

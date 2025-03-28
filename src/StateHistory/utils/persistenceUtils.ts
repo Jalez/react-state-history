@@ -1,26 +1,26 @@
 /** @format */
-import { Command, CommandHistoryState } from '../types';
-import { STORAGE_KEY_PREFIX } from '../context/CommandHistoryReducer';
-import { dehydrateCommand, hydrateCommand, SerializableCommand } from './commandRegistry';
+import { StateChange, StateHistory } from '../types';
+import { STORAGE_KEY_PREFIX } from '../context/StateHistoryReducer';
+import { dehydrateCommand, hydrateCommand, SerializableStateChange } from './stateChangeRegistry';
 
 interface SerializedState {
-  undoStack: (SerializableCommand | Record<string, unknown>)[];
-  redoStack: (SerializableCommand | Record<string, unknown>)[];
+  undoStack: (SerializableStateChange | Record<string, unknown>)[];
+  redoStack: (SerializableStateChange | Record<string, unknown>)[];
   maxStackSize: number;
   isPersistent: boolean;
 }
 
 /**
- * Serializes a command to a format that can be stored in localStorage
+ * Serializes a StateChange to a format that can be stored in localStorage
  */
-export function serializeCommand(cmd: Command): SerializableCommand | Record<string, unknown> {
-  // If the command has a commandName and params, use registry serialization
+export function serializeCommand(cmd: StateChange): SerializableStateChange | Record<string, unknown> {
+  // If the StateChange has a commandName and params, use registry serialization
   if (cmd.commandName && cmd.params !== undefined) {
     return dehydrateCommand(cmd);
   }
   
   // Fall back to legacy serialization for non-registry commands
-  console.warn('Command is not registry-based, using legacy serialization:', cmd.description);
+  console.warn('StateChange is not registry-based, using legacy serialization:', cmd.description);
   const result: Record<string, unknown> = {};
   
   // Copy all properties except functions
@@ -38,24 +38,24 @@ export function serializeCommand(cmd: Command): SerializableCommand | Record<str
 }
 
 /**
- * Deserializes a command from localStorage format
+ * Deserializes a StateChange from localStorage format
  */
-export function deserializeCommand(serialized: SerializableCommand | Record<string, unknown>): Command {
-  // If the serialized command has commandName and params, use registry deserialization
+export function deserializeCommand(serialized: SerializableStateChange | Record<string, unknown>): StateChange {
+  // If the serialized StateChange has commandName and params, use registry deserialization
   if ('commandName' in serialized && 'params' in serialized) {
-    return hydrateCommand(serialized as SerializableCommand);
+    return hydrateCommand(serialized as SerializableStateChange);
   }
   
   // Fall back to legacy deserialization for old commands
-  console.warn('Command is using legacy format, using placeholder functions:', serialized.description);
+  console.warn('StateChange is using legacy format, using placeholder functions:', serialized.description);
   
-  // Return a basic command with placeholder functions
+  // Return a basic StateChange with placeholder functions
   return {
     id: String(serialized.id ?? ''),
-    description: String(serialized.description ?? 'Legacy command'),
+    description: String(serialized.description ?? 'Legacy StateChange'),
     // Use placeholder functions
-    execute: () => console.warn(`Cannot execute legacy command: ${serialized.description}`),
-    undo: () => console.warn(`Cannot undo legacy command: ${serialized.description}`),
+    execute: () => console.warn(`Cannot execute legacy StateChange: ${serialized.description}`),
+    undo: () => console.warn(`Cannot undo legacy StateChange: ${serialized.description}`),
   };
 }
 
@@ -77,12 +77,12 @@ export function getStorageKey(storageKey?: string): string {
 }
 
 /**
- * Saves the command history state to localStorage
+ * Saves the StateChange history state to localStorage
  */
 export function saveStateToStorage(
   storageKey: string, 
-  undoStack: Command[],
-  redoStack: Command[],
+  undoStack: StateChange[],
+  redoStack: StateChange[],
   maxStackSize: number,
   isPersistent: boolean
 ): void {
@@ -106,22 +106,22 @@ export function saveStateToStorage(
 }
 
 /**
- * Loads the command history state from localStorage
+ * Loads the StateChange history state from localStorage
  */
-export function loadStateFromStorage(storageKey: string): Partial<CommandHistoryState> | null {
+export function loadStateFromStorage(storageKey: string): Partial<StateHistory> | null {
   try {
     const savedState = localStorage.getItem(storageKey);
     if (!savedState) return null;
     console.log('Loading state from localStorage:', storageKey);
     const parsedState = JSON.parse(savedState) as SerializedState;
     
-    // Create a new state object that matches CommandHistoryState
-    const restoredState: Partial<CommandHistoryState> = {
+    // Create a new state object that matches StateHistory
+    const restoredState: Partial<StateHistory> = {
       maxStackSize: parsedState.maxStackSize,
       isPersistent: parsedState.isPersistent,
     };
     
-    // Re-hydrate the command stacks with proper functions
+    // Re-hydrate the StateChange stacks with proper functions
     if (parsedState.undoStack) {
       restoredState.undoStack = parsedState.undoStack.map(deserializeCommand);
       restoredState.canUndo = restoredState.undoStack.length > 0;
@@ -140,7 +140,7 @@ export function loadStateFromStorage(storageKey: string): Partial<CommandHistory
 }
 
 /**
- * Removes the command history state from localStorage
+ * Removes the StateChange history state from localStorage
  */
 export function clearStoredState(storageKey: string): void {
   localStorage.removeItem(storageKey);

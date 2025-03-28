@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import UndoRedoControls from '../components/UndoRedoControls';
+import HistoryControls from './HistoryControls';
 
-// Mock the CommandHistoryContext hook
-vi.mock('../context/CommandHistoryContext', () => {
-  const mockUseCommandHistory = vi.fn().mockReturnValue({
+// Mock the StateHistoryContext hook
+vi.mock('../context/StateHistoryContext', () => {
+  const mockuseStateHistory = vi.fn().mockReturnValue({
     canUndo: true,
     canRedo: true,
     undo: vi.fn(),
@@ -16,17 +16,17 @@ vi.mock('../context/CommandHistoryContext', () => {
   });
   
   return {
-    useCommandHistory: mockUseCommandHistory,
-    CommandHistoryProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+    useStateHistory: mockuseStateHistory,
+    StateHistoryProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
   };
 });
 
 // Import the mocked module after mocking
-import { useCommandHistory } from '../context/CommandHistoryContext';
+import { useStateHistoryContext } from '../context/StateHistoryContext';
 
-describe('UndoRedoControls component', () => {
+describe('HistoryControls component', () => {
   it('renders default buttons', () => {
-    render(<UndoRedoControls />);
+    render(<HistoryControls />);
     
     expect(screen.getByText('Undo')).toBeInTheDocument();
     expect(screen.getByText('Redo')).toBeInTheDocument();
@@ -34,11 +34,11 @@ describe('UndoRedoControls component', () => {
   });
   
   it('calls undo/redo functions when buttons are clicked', async () => {
-    const mockUseCommandHistory = useCommandHistory as ReturnType<typeof vi.fn>;
+    const mockuseStateHistory = useStateHistoryContext as ReturnType<typeof vi.fn>;
     const mockUndo = vi.fn();
     const mockRedo = vi.fn();
     
-    mockUseCommandHistory.mockReturnValue({
+    mockuseStateHistory.mockReturnValue({
       canUndo: true,
       canRedo: true,
       undo: mockUndo,
@@ -48,7 +48,7 @@ describe('UndoRedoControls component', () => {
       togglePersistence: vi.fn(),
     });
     
-    render(<UndoRedoControls />);
+    render(<HistoryControls />);
     const user = userEvent.setup();
     
     const undoButton = screen.getByText('Undo');
@@ -62,8 +62,8 @@ describe('UndoRedoControls component', () => {
   });
   
   it('disables buttons when actions are not available', () => {
-    const mockUseCommandHistory = useCommandHistory as ReturnType<typeof vi.fn>;
-    mockUseCommandHistory.mockReturnValue({
+    const mockuseStateHistory = useStateHistoryContext as ReturnType<typeof vi.fn>;
+    mockuseStateHistory.mockReturnValue({
       canUndo: false,
       canRedo: false,
       undo: vi.fn(),
@@ -73,7 +73,7 @@ describe('UndoRedoControls component', () => {
       togglePersistence: vi.fn(),
     });
     
-    render(<UndoRedoControls />);
+    render(<HistoryControls />);
     
     const undoButton = screen.getByText('Undo');
     const redoButton = screen.getByText('Redo');
@@ -92,7 +92,7 @@ describe('UndoRedoControls component', () => {
     );
     
     render(
-      <UndoRedoControls 
+      <HistoryControls 
         UndoButton={CustomUndo}
         RedoButton={CustomRedo}
       />
@@ -105,8 +105,8 @@ describe('UndoRedoControls component', () => {
   });
   
   it('shows persistence toggle when enabled', () => {
-    const mockUseCommandHistory = useCommandHistory as ReturnType<typeof vi.fn>;
-    mockUseCommandHistory.mockReturnValue({
+    const mockuseStateHistory = useStateHistoryContext as ReturnType<typeof vi.fn>;
+    mockuseStateHistory.mockReturnValue({
       canUndo: true,
       canRedo: true,
       undo: vi.fn(),
@@ -116,7 +116,7 @@ describe('UndoRedoControls component', () => {
       togglePersistence: vi.fn(),
     });
     
-    render(<UndoRedoControls showPersistenceToggle={true} />);
+    render(<HistoryControls showPersistenceToggle={true} />);
     
     expect(screen.getByLabelText(/Enable Persistence/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Enable Persistence/)).toBeChecked();
@@ -127,7 +127,7 @@ describe('UndoRedoControls component', () => {
       <div data-testid="custom-controls">Custom Controls</div>
     );
     
-    render(<UndoRedoControls renderCustomControls={renderCustomControls} />);
+    render(<HistoryControls renderCustomControls={renderCustomControls} />);
     
     expect(screen.getByTestId('custom-controls')).toBeInTheDocument();
     expect(screen.getByText('Custom Controls')).toBeInTheDocument();

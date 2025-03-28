@@ -1,18 +1,18 @@
 /** @format */
 import React from "react";
-import { useCommandHistory } from "../context/CommandHistoryContext";
+import { useStateHistoryContext } from "../context/StateHistoryContext";
 
-export interface UndoRedoButtonProps {
+export interface HistoryButtonProps {
   onClick: () => void;
   disabled: boolean;
   className?: string;
   children?: React.ReactNode;
 }
 
-export interface UndoRedoControlsProps {
-  UndoButton?: React.ComponentType<UndoRedoButtonProps>;
-  RedoButton?: React.ComponentType<UndoRedoButtonProps>;
-  ClearButton?: React.ComponentType<UndoRedoButtonProps>;
+export interface HistoryControlsProps {
+  UndoButton?: React.ComponentType<HistoryButtonProps>;
+  RedoButton?: React.ComponentType<HistoryButtonProps>;
+  ClearButton?: React.ComponentType<HistoryButtonProps>;
   className?: string;
   renderCustomControls?: (props: {
     undo: () => void;
@@ -29,7 +29,7 @@ export interface UndoRedoControlsProps {
 /**
  * Default button component used when no custom button is provided
  */
-const DefaultButton: React.FC<UndoRedoButtonProps> = ({
+const DefaultButton: React.FC<HistoryButtonProps> = ({
   onClick,
   disabled,
   children,
@@ -53,32 +53,32 @@ const DefaultButton: React.FC<UndoRedoButtonProps> = ({
 /**
  * Default undo button
  */
-const DefaultUndoButton: React.FC<UndoRedoButtonProps> = (props) => (
+const DefaultUndoButton: React.FC<HistoryButtonProps> = (props) => (
   <DefaultButton {...props}>Undo</DefaultButton>
 );
 
 /**
  * Default redo button
  */
-const DefaultRedoButton: React.FC<UndoRedoButtonProps> = (props) => (
+const DefaultRedoButton: React.FC<HistoryButtonProps> = (props) => (
   <DefaultButton {...props}>Redo</DefaultButton>
 );
 
 /**
  * Default clear button
  */
-const DefaultClearButton: React.FC<UndoRedoButtonProps> = (props) => (
+const DefaultClearButton: React.FC<HistoryButtonProps> = (props) => (
   <DefaultButton {...props}>Clear history</DefaultButton>
 );
 
 
 /**
- * UndoRedoControls component
+ * HistoryControls component
  *
  * Displays undo and redo buttons that can be customized
  * Enables users to undo/redo operations
  */
-export const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
+export const HistoryControls: React.FC<HistoryControlsProps> = ({
   UndoButton = DefaultUndoButton,
   RedoButton = DefaultRedoButton,
   ClearButton = DefaultClearButton,
@@ -95,7 +95,7 @@ export const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
     clear,
     isPersistent,
     togglePersistence,
-  } = useCommandHistory();
+  } = useStateHistoryContext();
 
   // If custom rendering is provided, use that
   if (renderCustomControls) {
@@ -122,4 +122,4 @@ export const UndoRedoControls: React.FC<UndoRedoControlsProps> = ({
   );
 };
 
-export default UndoRedoControls;
+export default HistoryControls;

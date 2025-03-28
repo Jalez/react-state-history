@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/UndoRedo/UndoRedoControlsRegistration.tsx</title>
+    <title>Code coverage report for src/UndoRedo/HistoryControlsRegistry.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/UndoRedo</a> UndoRedoControlsRegistration.tsx</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/UndoRedo</a> HistoryControlsRegistry.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -254,9 +254,9 @@ export type UnregisterControlFn = (
 ) =&gt; void;
 &nbsp;
 /**
- * Props for the UndoRedoControlsRegistration component
+ * Props for the HistoryControlsRegistry component
  */
-export interface UndoRedoRegistrationProps {
+export interface HistoryRegistrationProps {
   /** Registration function provided by the host application */
   registerControl: RegisterControlFn;
   /** Unregistration function provided by the host application */
@@ -275,7 +275,7 @@ export interface UndoRedoRegistrationProps {
  * This optional integration component allows the undo/redo controls
  * to be registered with a host application's control registry.
  */
-const UndoRedoControlsRegistration: React.FC&lt;UndoRedoRegistrationProps&gt; = <span class="fstat-no" title="function not covered" >({</span>
+const HistoryControlsRegistry: React.FC&lt;HistoryRegistrationProps&gt; = <span class="fstat-no" title="function not covered" >({</span>
 <span class="cstat-no" title="statement not covered" >  registerControl,</span>
 <span class="cstat-no" title="statement not covered" >  unregisterControl,</span>
 <span class="cstat-no" title="statement not covered" >  section = "navigation",</span>
@@ -283,8 +283,8 @@ const UndoRedoControlsRegistration: React.FC&lt;UndoRedoRegistrationProps&gt; = 
 <span class="cstat-no" title="statement not covered" >  priority = 5,</span>
 <span class="cstat-no" title="statement not covered" >}) =&gt; {</span>
   // Import here to avoid circular dependencies
-<span class="cstat-no" title="statement not covered" >  const UndoRedoControls = React.lazy(</span>
-<span class="cstat-no" title="statement not covered" >    () =&gt; import("./components/UndoRedoControls")</span>
+<span class="cstat-no" title="statement not covered" >  const HistoryControls = React.lazy(</span>
+<span class="cstat-no" title="statement not covered" >    () =&gt; import("./components/HistoryControls")</span>
 <span class="cstat-no" title="statement not covered" >  );</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  useEffect(() =&gt; {</span>
@@ -293,7 +293,7 @@ const UndoRedoControlsRegistration: React.FC&lt;UndoRedoRegistrationProps&gt; = 
 <span class="cstat-no" title="statement not covered" >      section,</span>
 <span class="cstat-no" title="statement not covered" >      controlType,</span>
 <span class="cstat-no" title="statement not covered" >      "UNDO_REDO_CONTROLS",</span>
-<span class="cstat-no" title="statement not covered" >      UndoRedoControls,</span>
+<span class="cstat-no" title="statement not covered" >      HistoryControls,</span>
 <span class="cstat-no" title="statement not covered" >      {}, // No props needed as component uses context</span>
 <span class="cstat-no" title="statement not covered" >      priority</span>
 <span class="cstat-no" title="statement not covered" >    );</span>
@@ -308,7 +308,7 @@ const UndoRedoControlsRegistration: React.FC&lt;UndoRedoRegistrationProps&gt; = 
 <span class="cstat-no" title="statement not covered" >  return null;</span>
 <span class="cstat-no" title="statement not covered" >};</span>
 &nbsp;
-export default UndoRedoControlsRegistration;
+export default HistoryControlsRegistry;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->

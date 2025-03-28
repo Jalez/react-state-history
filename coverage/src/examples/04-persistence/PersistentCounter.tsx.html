@@ -257,22 +257,22 @@
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React from "react";
 import {
-  UndoRedoProvider, 
-  useCommandHistory,
-  useHistoryState,
+  StateHistoryProvider, 
+  useStateHistory,
+  useStateHistory,
 } from "../../UndoRedo";
-import UndoRedoControls from "../../UndoRedo/components/UndoRedoControls";
+import HistoryControls from "../../UndoRedo/components/HistoryControls";
 &nbsp;
 // Counter with registry-based persistence using the simplified hooks
 export const Counter = () =&gt; {
-  // The useHistoryState hook registers commands automatically
+  // The useStateHistory hook registers commands automatically
   // and handles persistence without any additional boilerplate
-  const [count, setCount, resetCount] = useHistoryState&lt;number&gt;(
+  const [count, setCount, resetCount] = useStateHistory&lt;number&gt;(
     "persistentCounter/setValue",
     0
   );
 &nbsp;
-  // Simple handlers that use the command-aware state setter
+  // Simple handlers that use the StateChange-aware state setter
   const increment = () =&gt; setCount(count + 1);
   const decrement = () =&gt; setCount(count - 1);
   const reset = <span class="fstat-no" title="function not covered" >() =&gt; resetCount();</span>
@@ -300,7 +300,7 @@ const CustomRenderControls = () =&gt; {
     undo,
     redo,
     clear
-  } = useCommandHistory();
+  } = useStateHistory();
 &nbsp;
   return (
     &lt;div&gt;
@@ -328,10 +328,10 @@ const CustomRenderControls = () =&gt; {
   );
 };
 &nbsp;
-// Wrap the counter with UndoRedoProvider with persistence enabled by default
+// Wrap the counter with StateHistoryProvider with persistence enabled by default
 export const PersistentCounterExample: React.FC = () =&gt; {
   return ( 
-    &lt;UndoRedoProvider
+    &lt;StateHistoryProvider
       storageKey="persistent-counter-example"
       defaultPersistent={true}
     &gt;
@@ -342,13 +342,13 @@ export const PersistentCounterExample: React.FC = () =&gt; {
           Toggle persistence and reload the page to see the state persist.
         &lt;/p&gt;
         &lt;p&gt;
-          The &lt;code&gt;useHistoryState&lt;/code&gt; hook automatically handles command registration
+          The &lt;code&gt;useStateHistory&lt;/code&gt; hook automatically handles StateChange registration
           and persistence with minimal code.
         &lt;/p&gt;
       &lt;/div&gt;
       &lt;Counter /&gt;
-      &lt;UndoRedoControls renderCustomControls={CustomRenderControls} /&gt;
-    &lt;/UndoRedoProvider&gt;
+      &lt;HistoryControls renderCustomControls={CustomRenderControls} /&gt;
+    &lt;/StateHistoryProvider&gt;
   );
 };
 &nbsp;</pre></td></tr></table></pre>

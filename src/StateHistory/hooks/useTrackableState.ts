@@ -1,23 +1,23 @@
 /** @format */
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useCommandHistory } from '../context/CommandHistoryContext';
-import { registerValueChangeCommand, createValueChangeCommand } from '../utils/commandUtils';
+import { useStateHistoryContext } from '../context/StateHistoryContext';
+import { registerValueChangeCommand, createValueChangeCommand } from '../utils/stateChangeUtils';
 
 /**
  * A hook that creates value change commands with minimal boilerplate
  * 
- * @param commandType Unique identifier for this command type
+ * @param commandType Unique identifier for this StateChange type
  * @param setValue Function to set the value (e.g., from useState)
  * @returns A function to update the value that automatically creates undo/redo commands
  */
-export function useValueCommand<T>(
+export function useTrackableState<T>(
   commandType: string,
   setValue: (value: T) => void
 ): (newValue: T, oldValue: T, description?: string) => void {
-  const { execute } = useCommandHistory();
+  const { execute } = useStateHistoryContext();
   const isRegistered = useRef(false);
   
-  // Register the command type once
+  // Register the StateChange type once
   useEffect(() => {
     if (!isRegistered.current) {
       registerValueChangeCommand<T>(commandType, setValue);
@@ -25,39 +25,39 @@ export function useValueCommand<T>(
     }
   }, [commandType, setValue]);
 
-  // Return a function that creates and executes the command
+  // Return a function that creates and executes the StateChange
   return useCallback(
     (newValue: T, oldValue: T, description?: string) => {
-      const command = createValueChangeCommand(
+      const StateChange = createValueChangeCommand(
         commandType,
         oldValue,
         newValue,
         description || `Change value from ${String(oldValue)} to ${String(newValue)}`
       );
       
-      execute(command);
+      execute(StateChange);
     },
     [commandType, execute]
   );
 }
 
 /**
- * A simpler version of useValueCommand for use with React's useState
+ * A simpler version of useTrackableState for use with React's useState
  * Automatically manages state and creates undoable commands
  * 
- * @param commandType Unique identifier for this command type
+ * @param commandType Unique identifier for this StateChange type
  * @param initialValue Initial value for the state
  * @returns A tuple of [value, setValue, resetValue]
  */
-export function useHistoryState<T>(
+export function useStateHistory<T>(
   commandType: string,
   initialValue: T
 ): [T, (newValue: T, description?: string) => void, () => void] {
   const [value, setValueDirect] = React.useState<T>(initialValue);
-  const { execute } = useCommandHistory();
+  const { execute } = useStateHistoryContext();
   const isRegistered = useRef(false);
   
-  // Register the command type once
+  // Register the StateChange type once
   useEffect(() => {
     if (!isRegistered.current) {
       registerValueChangeCommand<T>(commandType, setValueDirect);
@@ -65,17 +65,17 @@ export function useHistoryState<T>(
     }
   }, [commandType]);
 
-  // Command-wrapped setter
+  // StateChange-wrapped setter
   const setValue = useCallback(
     (newValue: T, description?: string) => {
-      const command = createValueChangeCommand(
+      const StateChange = createValueChangeCommand(
         commandType,
         value,
         newValue,
         description || `Change from ${String(value)} to ${String(newValue)}`
       );
       
-      execute(command);
+      execute(StateChange);
     },
     [value, commandType, execute]
   );
@@ -83,14 +83,14 @@ export function useHistoryState<T>(
   // Reset to initial value
   const resetValue = useCallback(
     () => {
-      const command = createValueChangeCommand(
+      const StateChange = createValueChangeCommand(
         commandType,
         value,
         initialValue,
         `Reset to initial value: ${String(initialValue)}`
       );
       
-      execute(command);
+      execute(StateChange);
     },
     [value, initialValue, commandType, execute]
   );

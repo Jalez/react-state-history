@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/UndoRedo/components/UndoRedoControls.tsx</title>
+    <title>Code coverage report for src/UndoRedo/components/HistoryControls.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/UndoRedo/components</a> UndoRedoControls.tsx</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">src/UndoRedo/components</a> HistoryControls.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -315,19 +315,19 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/** @format */
 import React from "react";
-import { useCommandHistory } from "../context/CommandHistoryContext";
+import { useStateHistory } from "../context/StateHistoryContext";
 &nbsp;
-export interface UndoRedoButtonProps {
+export interface HistoryButtonProps {
   onClick: () =&gt; void;
   disabled: boolean;
   className?: string;
   children?: React.ReactNode;
 }
 &nbsp;
-export interface UndoRedoControlsProps {
-  UndoButton?: React.ComponentType&lt;UndoRedoButtonProps&gt;;
-  RedoButton?: React.ComponentType&lt;UndoRedoButtonProps&gt;;
-  ClearButton?: React.ComponentType&lt;UndoRedoButtonProps&gt;;
+export interface HistoryControlsProps {
+  UndoButton?: React.ComponentType&lt;HistoryButtonProps&gt;;
+  RedoButton?: React.ComponentType&lt;HistoryButtonProps&gt;;
+  ClearButton?: React.ComponentType&lt;HistoryButtonProps&gt;;
   className?: string;
   renderCustomControls?: (props: {
     undo: () =&gt; void;
@@ -344,7 +344,7 @@ export interface UndoRedoControlsProps {
 /**
  * Default button component used when no custom button is provided
  */
-const DefaultButton: React.FC&lt;UndoRedoButtonProps&gt; = ({
+const DefaultButton: React.FC&lt;HistoryButtonProps&gt; = ({
   onClick,
   disabled,
   children,
@@ -368,32 +368,32 @@ const DefaultButton: React.FC&lt;UndoRedoButtonProps&gt; = ({
 /**
  * Default undo button
  */
-const DefaultUndoButton: React.FC&lt;UndoRedoButtonProps&gt; = (props) =&gt; (
+const DefaultUndoButton: React.FC&lt;HistoryButtonProps&gt; = (props) =&gt; (
   &lt;DefaultButton {...props}&gt;Undo&lt;/DefaultButton&gt;
 );
 &nbsp;
 /**
  * Default redo button
  */
-const DefaultRedoButton: React.FC&lt;UndoRedoButtonProps&gt; = (props) =&gt; (
+const DefaultRedoButton: React.FC&lt;HistoryButtonProps&gt; = (props) =&gt; (
   &lt;DefaultButton {...props}&gt;Redo&lt;/DefaultButton&gt;
 );
 &nbsp;
 /**
  * Default clear button
  */
-const DefaultClearButton: React.FC&lt;UndoRedoButtonProps&gt; = (props) =&gt; (
+const DefaultClearButton: React.FC&lt;HistoryButtonProps&gt; = (props) =&gt; (
   &lt;DefaultButton {...props}&gt;Clear history&lt;/DefaultButton&gt;
 );
 &nbsp;
 &nbsp;
 /**
- * UndoRedoControls component
+ * HistoryControls component
  *
  * Displays undo and redo buttons that can be customized
  * Enables users to undo/redo operations
  */
-export const UndoRedoControls: React.FC&lt;UndoRedoControlsProps&gt; = ({
+export const HistoryControls: React.FC&lt;HistoryControlsProps&gt; = ({
   UndoButton = DefaultUndoButton,
   RedoButton = DefaultRedoButton,
   ClearButton = DefaultClearButton,
@@ -410,7 +410,7 @@ export const UndoRedoControls: React.FC&lt;UndoRedoControlsProps&gt; = ({
     clear,
     isPersistent,
     togglePersistence,
-  } = useCommandHistory();
+  } = useStateHistory();
 &nbsp;
   // If custom rendering is provided, use that
   if (renderCustomControls) {
@@ -437,7 +437,7 @@ export const UndoRedoControls: React.FC&lt;UndoRedoControlsProps&gt; = ({
   );
 };
 &nbsp;
-export default UndoRedoControls;
+export default HistoryControls;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->

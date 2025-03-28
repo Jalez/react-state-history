@@ -608,22 +608,22 @@
  * with your own components and styling.
  *
  * Key concepts demonstrated:
- * - Using useHistoryState for simple state management
+ * - Using useStateHistory for simple state management
  * - Custom undo/redo buttons
  * - Custom rendering of controls
  * - Accessing undo/redo state directly
  */
 import React from "react";
 import {
-  UndoRedoProvider,
-  UndoRedoControls,
-  UndoRedoButtonProps,
-  useCommandHistory,
-  useHistoryState,
+  StateHistoryProvider,
+  HistoryControls,
+  HistoryButtonProps,
+  useStateHistory,
+  useStateHistory,
 } from "../../UndoRedo";
 &nbsp;
 // Custom styled undo button
-const CustomUndoButton: React.FC&lt;UndoRedoButtonProps&gt; = ({
+const CustomUndoButton: React.FC&lt;HistoryButtonProps&gt; = ({
   onClick,
   disabled,
 }) =&gt; (
@@ -671,7 +671,7 @@ const CustomUndoButton: React.FC&lt;UndoRedoButtonProps&gt; = ({
 );
 &nbsp;
 // Custom styled redo button
-const CustomRedoButton: React.FC&lt;UndoRedoButtonProps&gt; = ({
+const CustomRedoButton: React.FC&lt;HistoryButtonProps&gt; = ({
   onClick,
   disabled,
 }) =&gt; (
@@ -720,15 +720,15 @@ const CustomRedoButton: React.FC&lt;UndoRedoButtonProps&gt; = ({
 &nbsp;
 // Color picker component with undo/redo
 const ColorPicker = () =&gt; {
-  // Use the simplified useHistoryState hook instead of manual command creation
-  const [color, setColor] = useHistoryState&lt;string&gt;(
+  // Use the simplified useStateHistory hook instead of manual StateChange creation
+  const [color, setColor] = useStateHistory&lt;string&gt;(
     "colorPicker/changeColor",
     "#3f51b5"
   );
   
-  const { canUndo, canRedo, undo, redo } = useCommandHistory();
+  const { canUndo, canRedo, undo, redo } = useStateHistory();
 &nbsp;
-  // Simple handler that uses the command-aware state setter
+  // Simple handler that uses the StateChange-aware state setter
   const handleColorChange = (newColor: string) =&gt; {
     setColor(newColor, `Change color from ${color} to ${newColor}`);
   };
@@ -822,7 +822,7 @@ const ColorPicker = () =&gt; {
       &lt;div className="undo-redo-examples"&gt;
         &lt;h3&gt;Example 1: Custom Button Components&lt;/h3&gt;
         &lt;div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}&gt;
-          &lt;UndoRedoControls
+          &lt;HistoryControls
             UndoButton={CustomUndoButton}
             RedoButton={CustomRedoButton}
           /&gt;
@@ -830,7 +830,7 @@ const ColorPicker = () =&gt; {
 &nbsp;
         &lt;h3&gt;Example 2: Custom Rendering Function&lt;/h3&gt;
         &lt;div style={{ marginBottom: "20px" }}&gt;
-          &lt;UndoRedoControls renderCustomControls={renderCustomControls} /&gt;
+          &lt;HistoryControls renderCustomControls={renderCustomControls} /&gt;
         &lt;/div&gt;
       &lt;/div&gt;
 &nbsp;
@@ -841,8 +841,8 @@ const ColorPicker = () =&gt; {
         &lt;ol&gt;
           &lt;li&gt;Custom button components with unique styling&lt;/li&gt;
           &lt;li&gt;Custom rendering function for complete control over layout&lt;/li&gt;
-          &lt;li&gt;Accessing undo/redo state directly with useCommandHistory&lt;/li&gt;
-          &lt;li&gt;Using &lt;code&gt;useHistoryState&lt;/code&gt; for simplified state management&lt;/li&gt;
+          &lt;li&gt;Accessing undo/redo state directly with useStateHistory&lt;/li&gt;
+          &lt;li&gt;Using &lt;code&gt;useStateHistory&lt;/code&gt; for simplified state management&lt;/li&gt;
         &lt;/ol&gt;
       &lt;/div&gt;
     &lt;/div&gt;
@@ -865,10 +865,10 @@ const getLuminance = (hex: string): number =&gt; {
 &nbsp;
 // Export the wrapped color picker example
 export const ColorPickerExample = () =&gt; (
-  &lt;UndoRedoProvider&gt;
+  &lt;StateHistoryProvider&gt;
     &lt;h2&gt;Custom UI Example: Color Picker&lt;/h2&gt;
     &lt;ColorPicker /&gt;
-  &lt;/UndoRedoProvider&gt;
+  &lt;/StateHistoryProvider&gt;
 );
 &nbsp;</pre></td></tr></table></pre>
 

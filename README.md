@@ -60,17 +60,17 @@ It separates the object that invokes the operation from the one that knows how t
                               │
                               ▼
 ┌───────────────────────────────────────────────────────────┐
-│                     UndoRedoProvider                       │
+│                     StateHistoryProvider                       │
 └───────────────────────────────────────────────────────────┘
               │                           │
               ▼                           ▼
 ┌─────────────────────────┐     ┌───────────────────────────┐
-│  CommandHistoryContext  │     │ UndoRedoControlsRegister  │
+│  StateHistoryContext  │     │ UndoRedoControlsRegister  │
 └─────────────────────────┘     └───────────────────────────┘
               │                           │
               ▼                           ▼
 ┌─────────────────────────┐     ┌───────────────────────────┐
-│  useCommandHistoryStore │     │      UndoRedoControls     │
+│  useStateHistoryStore │     │      HistoryControls     │
 └─────────────────────────┘     └───────────────────────────┘
         │        │        
         │        │        ┌───────────────────────────┐
@@ -196,12 +196,12 @@ UndoRedo/
 1. Wrap your app with the UndoRedo provider:
 
 ```tsx
-import { UndoRedoProvider } from '../UndoRedo';
+import { StateHistoryProvider } from '../UndoRedo';
 
 const App = () => (
-  <UndoRedoProvider>
+  <StateHistoryProvider>
     <YourApplication />
-  </UndoRedoProvider>
+  </StateHistoryProvider>
 );
 ```
 
@@ -238,10 +238,10 @@ const NodeComponent = () => {
 For operations not covered by existing domain hooks:
 
 ```tsx
-import { createCommand, useCommandHistory } from '../UndoRedo';
+import { createCommand, useStateHistory } from '../UndoRedo';
 
 const CustomComponent = () => {
-  const { execute } = useCommandHistory();
+  const { execute } = useStateHistory();
   const [value, setValue] = useState('');
   
   const handleChange = (newValue: string) => {
@@ -263,11 +263,11 @@ const CustomComponent = () => {
 For operations that involve multiple steps:
 
 ```tsx
-import { createCompositeCommand, useCommandHistory } from '../UndoRedo';
+import { createCompositeCommand, useStateHistory } from '../UndoRedo';
 import { useNodeCommands } from '../../Node/hooks/useNodeCommands';
 
 const ComplexComponent = () => {
-  const { execute } = useCommandHistory();
+  const { execute } = useStateHistory();
   const { commands: nodeCommands } = useNodeCommands();
   
   const handleComplexOperation = () => {
@@ -292,10 +292,10 @@ const ComplexComponent = () => {
 To check if undo/redo operations are available:
 
 ```tsx
-import { useCommandHistory } from '../UndoRedo';
+import { useStateHistory } from '../UndoRedo';
 
 const StatusComponent = () => {
-  const { canUndo, canRedo } = useCommandHistory();
+  const { canUndo, canRedo } = useStateHistory();
   
   return (
     <div>

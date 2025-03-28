@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import {
-  UndoRedoProvider,
+  StateHistoryProvider,
   registerCommand,
   registerValueChangeCommand,
-} from "../../UndoRedo";
-import UndoRedoControls from "../../UndoRedo/components/UndoRedoControls";
+  HistoryControls
+} from "../../StateHistory";
 import { Counter } from "../01-basic/Counter";
 import { RegistryCounter } from "./RegistryCounter";
 
@@ -56,14 +56,14 @@ export const PersistentToggleCounter = () => {
         This example demonstrates toggling persistence on/off. The counter state
         will be preserved across page reloads when persistence is enabled.
       </p>
-      <UndoRedoProvider storageKey={STORAGE_KEY} defaultPersistent={false}>
+      <StateHistoryProvider storageKey={STORAGE_KEY} defaultPersistent={false}>
         <div className="legacy-example">
           <h3>Legacy Counter (Function String Serialization)</h3>
           <Counter />
         </div>
 
         <div className="registry-example">
-          <h3>Registry Counter (Command Registry)</h3>
+          <h3>Registry Counter (StateChange Registry)</h3>
           <RegistryCounter />
         </div>
         
@@ -72,13 +72,13 @@ export const PersistentToggleCounter = () => {
           page. The counter state will be preserved when persistence is enabled.
           <br />
           <strong>Note:</strong> The Registry Counter properly restores state on reload,
-          while the Legacy Counter will only preserve its value but not command functionality.
+          while the Legacy Counter will only preserve its value but not StateChange functionality.
         </div>
-        <UndoRedoControls
+        <HistoryControls
           showPersistenceToggle={true}
           persistenceLabel="Enable State Persistence"
         />
-      </UndoRedoProvider>
+      </StateHistoryProvider>
     </div>
   );
 };

@@ -344,13 +344,13 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">90x</span>
 <span class="cline-any cline-yes">90x</span></td><td class="text"><pre class="prettyprint lang-js">/** @format */
-import { CommandHistoryState, CommandHistoryAction, Command } from '../types';
+import { StateHistory, StateHistoryAction, StateChange } from '../types';
 &nbsp;
 // Storage key for persistent state
 export const STORAGE_KEY_PREFIX = "undoredo_history_";
 &nbsp;
 // Initial state
-export const initialState: CommandHistoryState = {
+export const initialState: StateHistory = {
   undoStack: [],
   redoStack: [],
   canUndo: false,
@@ -367,19 +367,19 @@ export const placeholderFunction = <span class="fstat-no" title="function not co
 <span class="cstat-no" title="statement not covered" >};</span>
 &nbsp;
 /**
- * Reducer function for command history state
+ * Reducer function for StateChange history state
  */
 export function commandHistoryReducer(
-  state: CommandHistoryState,
-  action: CommandHistoryAction
-): CommandHistoryState {
+  state: StateHistory,
+  action: StateHistoryAction
+): StateHistory {
   switch (action.type) {
     case "EXECUTE": {
-      const command = action.command;
-      if (!command) <span class="branch-0 cbranch-no" title="branch not covered" >return state;</span>
+      const StateChange = action.StateChange;
+      if (!StateChange) <span class="branch-0 cbranch-no" title="branch not covered" >return state;</span>
 &nbsp;
-      // The command execution happens outside the reducer
-      const newUndoStack = [...state.undoStack, command];
+      // The StateChange execution happens outside the reducer
+      const newUndoStack = [...state.undoStack, StateChange];
 &nbsp;
       if (newUndoStack.length &gt; state.maxStackSize) {
         newUndoStack.shift();
@@ -398,7 +398,7 @@ export function commandHistoryReducer(
       if (state.undoStack.length === 0) <span class="branch-0 cbranch-no" title="branch not covered" >return state;</span>
 &nbsp;
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
-      // The command undo happens outside the reducer
+      // The StateChange undo happens outside the reducer
       
       const newUndoStack = state.undoStack.slice(0, -1);
       const newRedoStack = [...state.redoStack, commandToUndo];
@@ -416,7 +416,7 @@ export function commandHistoryReducer(
       if (state.redoStack.length === 0) <span class="branch-0 cbranch-no" title="branch not covered" >return state;</span>
 &nbsp;
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
-      // The command execution happens outside the reducer
+      // The StateChange execution happens outside the reducer
       
       const newRedoStack = state.redoStack.slice(0, -1);
       const newUndoStack = [...state.undoStack, commandToRedo];

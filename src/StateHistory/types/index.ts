@@ -1,32 +1,32 @@
 /** @format */
 
 /**
- * Command Pattern Interface
+ * StateChange Pattern Interface
  * Represents an operation that can be executed and undone
  */
-export interface Command<T = unknown> {
+export interface StateChange<T = unknown> {
   /**
-   * Execute the command operation
+   * Execute the StateChange operation
    */
   execute: () => void;
 
   /**
-   * Undo the command operation
+   * Undo the StateChange operation
    */
   undo: () => void;
 
   /**
-   * Optional unique identifier for the command
+   * Optional unique identifier for the StateChange
    */
   id?: string;
 
   /**
-   * Human-readable description of what the command does
+   * Human-readable description of what the StateChange does
    */
   description?: string;
 
   /**
-   * Optional registry command name (for serializable commands)
+   * Optional registry StateChange name (for serializable commands)
    */
   commandName?: string;
 
@@ -37,23 +37,23 @@ export interface Command<T = unknown> {
 }
 
 /**
- * Command factory type - creates commands from parameters
+ * StateChange factory type - creates commands from parameters
  */
-export type CommandFactory<T> = (params: T) => Command;
+export type StateChangeFactory<T> = (params: T) => StateChange;
 
 /**
- * State for the command history store
+ * State for the StateChange history store
  */
-export interface CommandHistoryState {
+export interface StateHistory {
   /**
    * Stack of commands that can be undone
    */
-  undoStack: Command[];
+  undoStack: StateChange[];
 
   /**
    * Stack of commands that can be redone
    */
-  redoStack: Command[];
+  redoStack: StateChange[];
 
   /**
    * Whether there are commands available to undo
@@ -71,44 +71,44 @@ export interface CommandHistoryState {
   maxStackSize: number;
 
   /**
-   * Whether the command history should persist between page reloads
+   * Whether the StateChange history should persist between page reloads
    */
   isPersistent: boolean;
 }
 
 /**
- * Actions for the command history reducer
+ * Actions for the StateChange history reducer
  */
-export type CommandHistoryAction =
-  | { type: "EXECUTE"; command: Command }
+export type StateHistoryAction =
+  | { type: "EXECUTE"; StateChange: StateChange }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "CLEAR" }
   | { type: "SET_MAX_STACK_SIZE"; size: number }
   | { type: "TOGGLE_PERSISTENCE" }
-  | { type: "LOAD_PERSISTENT_STATE"; state: Partial<CommandHistoryState> };
+  | { type: "LOAD_PERSISTENT_STATE"; state: Partial<StateHistory> };
 
 /**
  * Context interface that extends the state with available operations
  */
-export interface CommandHistoryContextType extends CommandHistoryState {
+export interface StateHistoryContextType extends StateHistory {
   /**
-   * Execute a command and add it to the undo stack
+   * Execute a StateChange and add it to the undo stack
    */
-  execute: (command: Command) => void;
+  execute: (StateChange: StateChange) => void;
 
   /**
-   * Undo the last executed command
+   * Undo the last executed StateChange
    */
   undo: () => void;
 
   /**
-   * Redo the last undone command
+   * Redo the last undone StateChange
    */
   redo: () => void;
 
   /**
-   * Clear all command history
+   * Clear all StateChange history
    */
   clear: () => void;
 
@@ -118,15 +118,15 @@ export interface CommandHistoryContextType extends CommandHistoryState {
   setMaxStackSize: (size: number) => void;
 
   /**
-   * Toggle command persistence
+   * Toggle StateChange persistence
    */
   togglePersistence: () => void;
 }
 
 /**
- * Props for the CommandHistoryProvider component
+ * Props for the StateHistoryProvider component
  */
-export interface CommandHistoryProviderProps {
+export interface StateHistoryProviderProps {
   /**
    * Child components
    */

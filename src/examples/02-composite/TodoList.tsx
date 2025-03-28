@@ -5,15 +5,15 @@
  * more complex data structures and composite commands.
  *
  * Key concepts demonstrated:
- * - Using useValueCommand for complex state
+ * - Using useTrackableState for complex state
  * - Grouping multiple state changes as one undoable operation
  */
 import { useState, useCallback } from "react";
 import {
-  UndoRedoProvider,
-  UndoRedoControls,
-  useValueCommand,
-} from "../../UndoRedo";
+  StateHistoryProvider,
+  HistoryControls,
+  useTrackableState,
+} from "../../StateHistory";
 
 // Todo item interface
 interface Todo {
@@ -26,21 +26,21 @@ interface Todo {
 const TodoList = () => {
   // Regular React state for the todos
   const [todos, setTodos] = useState<Todo[]>([
-    { id: 1, text: "Learn about Command Pattern", completed: false },
+    { id: 1, text: "Learn about StateChange Pattern", completed: false },
     { id: 2, text: "Implement Undo/Redo", completed: false },
   ]);
   
   // Regular React state for the input field
   const [newTodoText, setNewTodoText] = useState("");
   
-  // Create a command-aware state setter for todos
-  // This hook registers the command type automatically
-  const updateTodos = useValueCommand<Todo[]>(
+  // Create a StateChange-aware state setter for todos
+  // This hook registers the StateChange type automatically
+  const updateTodos = useTrackableState<Todo[]>(
     "todoList/updateTodos",
     setTodos
   );
 
-  // Add a single todo with the command-aware state setter
+  // Add a single todo with the StateChange-aware state setter
   const addTodo = () => {
     if (!newTodoText.trim()) return;
 
@@ -50,7 +50,7 @@ const TodoList = () => {
       completed: false,
     };
 
-    // Use our command-aware state setter
+    // Use our StateChange-aware state setter
     updateTodos([...todos, newTodo], todos, `Add todo: ${newTodo.text}`);
     setNewTodoText(""); // Clear input (doesn't need undo/redo)
   };
@@ -64,7 +64,7 @@ const TodoList = () => {
     // Create new todos with all items completed
     const newTodos = todos.map((todo) => ({ ...todo, completed: true }));
     
-    // Use our command-aware state setter
+    // Use our StateChange-aware state setter
     updateTodos(
       newTodos, 
       todos,
@@ -81,7 +81,7 @@ const TodoList = () => {
       t.id === id ? { ...t, completed: !t.completed } : t
     );
     
-    // Use our command-aware state setter
+    // Use our StateChange-aware state setter
     updateTodos(
       newTodos,
       todos, 
@@ -118,12 +118,12 @@ const TodoList = () => {
       </ul>
 
       <div className="undo-redo">
-        <UndoRedoControls />
+        <HistoryControls />
       </div>
 
       <div className="description">
         <p>
-          This example demonstrates using the <code>useValueCommand</code> hook with a more
+          This example demonstrates using the <code>useTrackableState</code> hook with a more
           complex data structure (an array of todo items). 
         </p>
         <p>
@@ -137,8 +137,8 @@ const TodoList = () => {
 
 // Export the wrapped todo list example
 export const TodoListExample = () => (
-  <UndoRedoProvider>
+  <StateHistoryProvider>
     <h2>Advanced Example: Todo List with Undo/Redo</h2>
     <TodoList />
-  </UndoRedoProvider>
+  </StateHistoryProvider>
 );

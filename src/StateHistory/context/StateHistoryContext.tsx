@@ -8,15 +8,14 @@ import React, {
   useState,
 } from "react";
 import { 
-  Command, 
-  CommandHistoryContextType, 
-  CommandHistoryProviderProps, 
-   
+  StateChange, 
+  StateHistoryContextType, 
+  StateHistoryProviderProps, 
 } from "../types";
 import { 
   commandHistoryReducer, 
   initialState 
-} from "./CommandHistoryReducer";
+} from "./StateHistoryReducer";
 import { 
   getStorageKey, 
   loadStateFromStorage, 
@@ -26,13 +25,13 @@ import {
 import { useDeferredActions } from "../utils/renderUtils";
 
 // Create the context
-const CommandHistoryContext = createContext<CommandHistoryContextType | undefined>(undefined);
+const StateHistoryContext = createContext<StateHistoryContextType | undefined>(undefined);
 
 /**
- * Provider component for command history
- * Makes command history state and methods available to all child components
+ * Provider component for StateChange history
+ * Makes StateChange history state and methods available to all child components
  */
-export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
+export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
   children,
   maxStackSize,
   storageKey,
@@ -85,15 +84,15 @@ export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
     initialLoadAttempted,
   ]);
 
-  // Command execution with safe state updates
-  const execute = useCallback((command: Command) => {
-    if (!command) return;
+  // StateChange execution with safe state updates
+  const execute = useCallback((StateChange: StateChange) => {
+    if (!StateChange) return;
     
     scheduleDeferredAction(() => {
-      // Execute command first, outside of reducer
-      command.execute();
+      // Execute StateChange first, outside of reducer
+      StateChange.execute();
       // Then update the state
-      dispatch({ type: "EXECUTE", command });
+      dispatch({ type: "EXECUTE", StateChange });
     });
   }, [scheduleDeferredAction]);
 
@@ -102,7 +101,7 @@ export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
     if (state.undoStack.length === 0) return;
     
     scheduleDeferredAction(() => {
-      // Get the command to undo
+      // Get the StateChange to undo
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
       // Execute undo first, outside of reducer
       commandToUndo.undo();
@@ -116,7 +115,7 @@ export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
     if (state.redoStack.length === 0) return;
     
     scheduleDeferredAction(() => {
-      // Get the command to redo
+      // Get the StateChange to redo
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
       // Execute first, outside of reducer
       commandToRedo.execute();
@@ -125,7 +124,7 @@ export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
     });
   }, [state.redoStack, scheduleDeferredAction]);
 
-  // Clear command history
+  // Clear StateChange history
   const clear = useCallback(() => {
     dispatch({ type: "CLEAR" });
   }, []);
@@ -145,7 +144,7 @@ export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
   }, [state.isPersistent, finalStorageKey]);
 
   // Create context value
-  const contextValue: CommandHistoryContextType = {
+  const contextValue: StateHistoryContextType = {
     ...state,
     execute,
     undo,
@@ -156,21 +155,21 @@ export const CommandHistoryProvider: React.FC<CommandHistoryProviderProps> = ({
   };
 
   return (
-    <CommandHistoryContext.Provider value={contextValue}>
+    <StateHistoryContext.Provider value={contextValue}>
       {children}
-    </CommandHistoryContext.Provider>
+    </StateHistoryContext.Provider>
   );
 };
 
 /**
- * Hook to use command history context
- * @throws Error if used outside of a CommandHistoryProvider
+ * Hook to use StateChange history context
+ * @throws Error if used outside of a StateHistoryProvider
  */
-export const useCommandHistory = (): CommandHistoryContextType => {
-  const context = useContext(CommandHistoryContext);
+export const useStateHistoryContext = (): StateHistoryContextType => {
+  const context = useContext(StateHistoryContext);
   if (context === undefined) {
     throw new Error(
-      "useCommandHistory must be used within a CommandHistoryProvider"
+      "useStateHistory must be used within a StateHistoryProvider"
     );
   }
   return context;

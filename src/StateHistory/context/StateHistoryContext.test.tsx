@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { 
-  CommandHistoryProvider, 
-  useCommandHistory 
-} from './CommandHistoryContext';
+  StateHistoryProvider, 
+  useStateHistoryContext 
+} from './StateHistoryContext';
 import { setupMockLocalStorage } from '../../test/mockLocalStorage';
-import { Command } from '../types';
+import { StateChange } from '../types';
 
-describe('CommandHistoryContext', () => {
+describe('StateHistoryContext', () => {
   const { restoreLocalStorage } = setupMockLocalStorage();
   
   // Cleanup after each test
@@ -17,10 +17,10 @@ describe('CommandHistoryContext', () => {
     vi.clearAllMocks();
   });
 
-  // Custom matcher for command history tests
+  // Custom matcher for StateChange history tests
   function expectCommandHistory(
-    result: { current: ReturnType<typeof useCommandHistory> },
-    expectedProps: Partial<ReturnType<typeof useCommandHistory>>
+    result: { current: ReturnType<typeof useStateHistoryContext> },
+    expectedProps: Partial<ReturnType<typeof useStateHistoryContext>>
   ) {
     Object.entries(expectedProps).forEach(([key, value]) => {
       expect(result.current[key as keyof typeof result.current]).toEqual(value);
@@ -28,9 +28,9 @@ describe('CommandHistoryContext', () => {
   }
 
   it('should initialize with expected values', () => {
-    const { result } = renderHook(() => useCommandHistory(), {
+    const { result } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider>{children}</CommandHistoryProvider>
+        <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
     });
 
@@ -51,16 +51,16 @@ describe('CommandHistoryContext', () => {
     const mockExecute = vi.fn();
     const mockUndo = vi.fn();
     
-    const testCommand: Command = {
+    const testCommand: StateChange = {
       execute: mockExecute,
       undo: mockUndo,
-      id: 'test-command',
-      description: 'Test command'
+      id: 'test-StateChange',
+      description: 'Test StateChange'
     };
 
-    const { result } = renderHook(() => useCommandHistory(), {
+    const { result } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider>{children}</CommandHistoryProvider>
+        <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
     });
 
@@ -82,16 +82,16 @@ describe('CommandHistoryContext', () => {
     const mockExecute = vi.fn();
     const mockUndo = vi.fn();
     
-    const testCommand: Command = {
+    const testCommand: StateChange = {
       execute: mockExecute,
       undo: mockUndo,
-      id: 'test-command',
-      description: 'Test command'
+      id: 'test-StateChange',
+      description: 'Test StateChange'
     };
 
-    const { result } = renderHook(() => useCommandHistory(), {
+    const { result } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider>{children}</CommandHistoryProvider>
+        <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
     });
 
@@ -119,17 +119,17 @@ describe('CommandHistoryContext', () => {
     expect(mockExecute).toHaveBeenCalledTimes(2); // Initial + redo
   });
 
-  it('should clear command history', () => {
-    const testCommand: Command = {
+  it('should clear StateChange history', () => {
+    const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
-      id: 'test-command',
-      description: 'Test command'
+      id: 'test-StateChange',
+      description: 'Test StateChange'
     };
 
-    const { result } = renderHook(() => useCommandHistory(), {
+    const { result } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider>{children}</CommandHistoryProvider>
+        <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
     });
 
@@ -148,25 +148,25 @@ describe('CommandHistoryContext', () => {
   });
 
   it('should support toggling persistence', () => {
-    const { result } = renderHook(() => useCommandHistory(), {
+    const { result } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider 
+        <StateHistoryProvider 
           storageKey="test-persistence"
         >
           {children}
-        </CommandHistoryProvider>
+        </StateHistoryProvider>
       ),
     });
 
     // Initially persistence is off
     expectCommandHistory(result, { isPersistent: false });
 
-    // Execute a command to have something to persist
-    const testCommand: Command = {
+    // Execute a StateChange to have something to persist
+    const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
       id: 'test',
-      description: 'Test command'
+      description: 'Test StateChange'
     };
 
     act(() => {
@@ -194,25 +194,25 @@ describe('CommandHistoryContext', () => {
 
   it('should load state from storage on initialization', () => {
     // First create and save a state
-    const testCommand: Command = {
+    const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
       id: 'test',
-      description: 'Restored Command'
+      description: 'Restored StateChange'
     };
 
-    const { result: initialResult, unmount } = renderHook(() => useCommandHistory(), {
+    const { result: initialResult, unmount } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider 
+        <StateHistoryProvider 
           storageKey="test-load"
           defaultPersistent={true}
         >
           {children}
-        </CommandHistoryProvider>
+        </StateHistoryProvider>
       ),
     });
 
-    // Execute a command and ensure it's persisted
+    // Execute a StateChange and ensure it's persisted
     act(() => {
       initialResult.current.execute(testCommand);
     });
@@ -224,14 +224,14 @@ describe('CommandHistoryContext', () => {
     unmount();
 
     // Now create a new hook that should load the persisted state
-    const { result: newResult } = renderHook(() => useCommandHistory(), {
+    const { result: newResult } = renderHook(() => useStateHistoryContext(), {
       wrapper: ({ children }) => (
-        <CommandHistoryProvider 
+        <StateHistoryProvider 
           storageKey="test-load"
           defaultPersistent={true} 
         >
           {children}
-        </CommandHistoryProvider>
+        </StateHistoryProvider>
       ),
     });
 

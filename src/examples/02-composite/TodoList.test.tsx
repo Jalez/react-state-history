@@ -9,7 +9,7 @@ describe('TodoList component', () => {
     
     const todoItems = screen.getAllByRole('listitem');
     expect(todoItems.length).toBe(2);
-    expect(todoItems[0]).toHaveTextContent('Learn about Command Pattern');
+    expect(todoItems[0]).toHaveTextContent('Learn about StateChange Pattern');
     expect(todoItems[1]).toHaveTextContent('Implement Undo/Redo');
   });
   

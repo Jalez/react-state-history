@@ -393,7 +393,7 @@ export type CommandRegistry = Record&lt;string, CommandFunction&gt;;
 /**
  * Serializable version of a command
  */
-export interface SerializableCommand {
+export interface SerializableStateChange {
   /**
    * Unique identifier for the command
    */
@@ -451,10 +451,10 @@ export <span class="fstat-no" title="function not covered" >function hasCommand(
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
- * Create a Command object from a SerializableCommand and the registry
+ * Create a Command object from a SerializableStateChange and the registry
  */
-export <span class="fstat-no" title="function not covered" >function hydrateCommand(serializableCommand: SerializableCommand): Command {</span>
-<span class="cstat-no" title="statement not covered" >  const { id, commandName, params, description } = serializableCommand;</span>
+export <span class="fstat-no" title="function not covered" >function hydrateCommand(SerializableStateChange: SerializableStateChange): Command {</span>
+<span class="cstat-no" title="statement not covered" >  const { id, commandName, params, description } = SerializableStateChange;</span>
 <span class="cstat-no" title="statement not covered" >  const commandFn = getCommand(commandName);</span>
   
 <span class="cstat-no" title="statement not covered" >  if (!commandFn) {</span>
@@ -480,9 +480,9 @@ export <span class="fstat-no" title="function not covered" >function hydrateComm
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
- * Convert a Command object to a SerializableCommand
+ * Convert a Command object to a SerializableStateChange
  */
-export function dehydrateCommand(command: Command): SerializableCommand {
+export function dehydrateCommand(command: Command): SerializableStateChange {
   if (!command.commandName || command.params === undefined) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
 <span class="cstat-no" title="statement not covered" >    throw new Error('Command is not serializable: missing commandName or params');</span>
 <span class="cstat-no" title="statement not covered" >  }</span>

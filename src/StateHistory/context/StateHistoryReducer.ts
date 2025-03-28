@@ -1,11 +1,11 @@
 /** @format */
-import { CommandHistoryState, CommandHistoryAction } from '../types';
+import { StateHistory, StateHistoryAction } from '../types';
 
 // Storage key for persistent state
-export const STORAGE_KEY_PREFIX = "undoredo_history_";
+export const STORAGE_KEY_PREFIX = "state_history_";
 
 // Initial state
-export const initialState: CommandHistoryState = {
+export const initialState: StateHistory = {
   undoStack: [],
   redoStack: [],
   canUndo: false,
@@ -22,19 +22,19 @@ export const placeholderFunction = () => {
 };
 
 /**
- * Reducer function for command history state
+ * Reducer function for StateChange history state
  */
 export function commandHistoryReducer(
-  state: CommandHistoryState,
-  action: CommandHistoryAction
-): CommandHistoryState {
+  state: StateHistory,
+  action: StateHistoryAction
+): StateHistory {
   switch (action.type) {
     case "EXECUTE": {
-      const command = action.command;
-      if (!command) return state;
+      const StateChange = action.StateChange;
+      if (!StateChange) return state;
 
-      // The command execution happens outside the reducer
-      const newUndoStack = [...state.undoStack, command];
+      // The StateChange execution happens outside the reducer
+      const newUndoStack = [...state.undoStack, StateChange];
 
       if (newUndoStack.length > state.maxStackSize) {
         newUndoStack.shift();
@@ -53,7 +53,7 @@ export function commandHistoryReducer(
       if (state.undoStack.length === 0) return state;
 
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
-      // The command undo happens outside the reducer
+      // The StateChange undo happens outside the reducer
       
       const newUndoStack = state.undoStack.slice(0, -1);
       const newRedoStack = [...state.redoStack, commandToUndo];
@@ -71,7 +71,7 @@ export function commandHistoryReducer(
       if (state.redoStack.length === 0) return state;
 
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
-      // The command execution happens outside the reducer
+      // The StateChange execution happens outside the reducer
       
       const newRedoStack = state.redoStack.slice(0, -1);
       const newUndoStack = [...state.undoStack, commandToRedo];

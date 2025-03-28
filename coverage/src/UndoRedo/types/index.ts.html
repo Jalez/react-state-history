@@ -402,12 +402,12 @@ export interface Command {
 /**
  * Command factory type - creates commands from parameters
  */
-export type CommandFactory&lt;T&gt; = (params: T) =&gt; Command;
+export type StateChangeFactory&lt;T&gt; = (params: T) =&gt; Command;
 &nbsp;
 /**
  * State for the command history store
  */
-export interface CommandHistoryState {
+export interface StateHistory {
   /**
    * Stack of commands that can be undone
    */
@@ -442,19 +442,19 @@ export interface CommandHistoryState {
 /**
  * Actions for the command history reducer
  */
-export type CommandHistoryAction =
+export type StateHistoryAction =
   | { type: "EXECUTE"; command: Command }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "CLEAR" }
   | { type: "SET_MAX_STACK_SIZE"; size: number }
   | { type: "TOGGLE_PERSISTENCE" }
-  | { type: "LOAD_PERSISTENT_STATE"; state: Partial&lt;CommandHistoryState&gt; };
+  | { type: "LOAD_PERSISTENT_STATE"; state: Partial&lt;StateHistory&gt; };
 &nbsp;
 /**
  * Context interface that extends the state with available operations
  */
-export interface CommandHistoryContextType extends CommandHistoryState {
+export interface StateHistoryContext extends StateHistory {
   /**
    * Execute a command and add it to the undo stack
    */
@@ -487,9 +487,9 @@ export interface CommandHistoryContextType extends CommandHistoryState {
 }
 &nbsp;
 /**
- * Props for the CommandHistoryProvider component
+ * Props for the StateHistoryProvider component
  */
-export interface CommandHistoryProviderProps {
+export interface StateHistoryProviderProps {
   /**
    * Child components
    */

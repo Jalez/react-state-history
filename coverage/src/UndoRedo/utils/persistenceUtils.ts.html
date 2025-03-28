@@ -328,21 +328,21 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span></td><td class="text"><pre class="prettyprint lang-js">/** @format */
-import { Command } from '../types';
+import { StateChange } from '../types';
 import { STORAGE_KEY_PREFIX } from '../context/CommandHistoryReducer';
-import { dehydrateCommand, hydrateCommand, SerializableCommand } from './commandRegistry';
+import { dehydrateCommand, hydrateCommand, SerializableStateChange } from './commandRegistry';
 &nbsp;
 /**
- * Serializes a command to a format that can be stored in localStorage
+ * Serializes a StateChange to a format that can be stored in localStorage
  */
-export function serializeCommand(cmd: Command): SerializableCommand | Record&lt;string, any&gt; {
-  // If the command has a commandName and params, use registry serialization
+export function serializeCommand(cmd: StateChange): SerializableStateChange | Record&lt;string, any&gt; {
+  // If the StateChange has a commandName and params, use registry serialization
   if (cmd.commandName &amp;&amp; cmd.params !== undefined) {
     return dehydrateCommand(cmd);
   }
   
   // Fall back to legacy serialization for non-registry commands
-  console.warn('Command is not registry-based, using legacy serialization:', cmd.description);
+  console.warn('StateChange is not registry-based, using legacy serialization:', cmd.description);
   const result: Record&lt;string, any&gt; = {};
   
   // Copy all properties except functions
@@ -360,24 +360,24 @@ export function serializeCommand(cmd: Command): SerializableCommand | Record&lt;
 }
 &nbsp;
 /**
- * Deserializes a command from localStorage format
+ * Deserializes a StateChange from localStorage format
  */
-export function deserializeCommand(serialized: any): Command {
-  // If the serialized command has commandName and params, use registry deserialization
+export function deserializeCommand(serialized: any): StateChange {
+  // If the serialized StateChange has commandName and params, use registry deserialization
   if (serialized.<span class="branch-0 cbranch-no" title="branch not covered" >commandName &amp;&amp; serialized.params !== undefined) <span class="branch-0 cbranch-no" title="branch not covered" >{</span></span>
-<span class="cstat-no" title="statement not covered" >    return hydrateCommand(serialized as SerializableCommand);</span>
+<span class="cstat-no" title="statement not covered" >    return hydrateCommand(serialized as SerializableStateChange);</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
   
   // Fall back to legacy deserialization for old commands
-  console.warn('Command is using legacy format, using placeholder functions:', serialized.description);
+  console.warn('StateChange is using legacy format, using placeholder functions:', serialized.description);
   
-  // Return a basic command with placeholder functions
+  // Return a basic StateChange with placeholder functions
   return {
     id: serialized.id,
-    description: serialized.<span class="branch-0 cbranch-no" title="branch not covered" >description || 'Legacy command',</span>
+    description: serialized.<span class="branch-0 cbranch-no" title="branch not covered" >description || 'Legacy StateChange',</span>
     // Use placeholder functions
-    execute: <span class="fstat-no" title="function not covered" >() =&gt; console.warn(`Cannot execute legacy command: ${serialized.description}`),</span>
-    undo: <span class="fstat-no" title="function not covered" >() =&gt; console.warn(`Cannot undo legacy command: ${serialized.description}`),</span>
+    execute: <span class="fstat-no" title="function not covered" >() =&gt; console.warn(`Cannot execute legacy StateChange: ${serialized.description}`),</span>
+    undo: <span class="fstat-no" title="function not covered" >() =&gt; console.warn(`Cannot undo legacy StateChange: ${serialized.description}`),</span>
   };
 }
 &nbsp;
@@ -399,12 +399,12 @@ export function getStorageKey(storageKey?: string): string {
 }
 &nbsp;
 /**
- * Saves the command history state to localStorage
+ * Saves the StateChange history state to localStorage
  */
 export function saveStateToStorage(
   storageKey: string, 
-  undoStack: Command[],
-  redoStack: Command[],
+  undoStack: StateChange[],
+  redoStack: StateChange[],
   maxStackSize: number,
   isPersistent: boolean
 ): void {
@@ -428,7 +428,7 @@ export function saveStateToStorage(
 }
 &nbsp;
 /**
- * Loads the command history state from localStorage
+ * Loads the StateChange history state from localStorage
  */
 export function loadStateFromStorage(storageKey: string): any {
   try {
@@ -454,7 +454,7 @@ export function loadStateFromStorage(storageKey: string): any {
 }
 &nbsp;
 /**
- * Removes the command history state from localStorage
+ * Removes the StateChange history state from localStorage
  */
 export function clearStoredState(storageKey: string): void {
   localStorage.removeItem(storageKey);
