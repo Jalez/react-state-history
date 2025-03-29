@@ -6,7 +6,7 @@
 
 `react-state-history` provides a flexible and robust system for managing state history (undo/redo) in React applications using TypeScript. It leverages the Command Pattern and offers features like state persistence, composite commands, and a command registry for serializable actions.
 
-## What's New in v0.1.1
+## What's New in v1.1.2
 
 - **Code Simplification**: The core logic has been streamlined for better maintainability without removing any functionality.
 - **Improved Error Handling**: Enhanced error detection and recovery in command serialization and hydration.
