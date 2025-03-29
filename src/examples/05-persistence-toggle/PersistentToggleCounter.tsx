@@ -1,78 +1,64 @@
-import { useEffect } from "react";
 import {
   StateHistoryProvider,
-  registerCommand,
-  registerValueChangeCommand,
-  HistoryControls
+  useHistoryState,
+  HistoryControls,
 } from "../../StateHistory";
-import { Counter } from "../01-basic/Counter";
-import { RegistryCounter } from "./RegistryCounter";
 
 const STORAGE_KEY = "persistent-toggle-counter";
 
-export const PersistentToggleCounter = () => {
-  // Register our counter commands - typically would be done at app startup
-  useEffect(() => {
-    // Register common counter commands
-    registerValueChangeCommand<number>(
-      "counter/setValue", 
-      (value) => {
-        // This is a dummy registration that will be overridden
-        // by the actual implementation in the component
-        console.log("Default setValue handler called with:", value);
-      }
-    );
+// Simple counter that uses the useHistoryState hook
+const Counter = () => {
+  const [count, setCount, resetCount] = useHistoryState<number>(
+    "toggleCounter/setValue",
+    0
+  );
 
-    // You could also register individual commands
-    registerCommand(
-      "counter/increment",
-      (params: { count: number }) => {
-        // The actual implementation will be provided by the component
-        console.log("Incrementing from", params.count);
-      },
-      (params: { count: number }) => {
-        // The actual implementation will be provided by the component
-        console.log("Undoing increment from", params.count + 1);
-      }
-    );
-
-    registerCommand(
-      "counter/reset",
-      (params: { previousCount: number }) => {
-        // Implementation will be provided by component
-        console.log("Resetting from", params.previousCount);
-      },
-      (params: { previousCount: number }) => {
-        // Implementation will be provided by component
-        console.log("Undoing reset to", params.previousCount);
-      }
-    );
-  }, []);
+  const increment = () => setCount(count + 1);
+  const decrement = () => setCount(count - 1);
+  const reset = () => resetCount();
 
   return (
-    <div className="example-container">
-      <h2>Persistent Toggle Counter</h2>
-      <p>
-        This example demonstrates toggling persistence on/off. The counter state
-        will be preserved across page reloads when persistence is enabled.
-      </p>
-      <StateHistoryProvider storageKey={STORAGE_KEY} defaultPersistent={false}>
-        <div className="legacy-example">
-          <h3>Legacy Counter (Function String Serialization)</h3>
-          <Counter />
-        </div>
+    <div className="example">
+      <div className="controls">
+        <button onClick={increment}>Increment</button>
+        <button onClick={decrement}>Decrement</button>
+        <button onClick={reset}>Reset counter</button>
+      </div>
+      <div className="result">
+        <p>Count: {count}</p>
+      </div>
+    </div>
+  );
+};
 
-        <div className="registry-example">
-          <h3>Registry Counter (StateChange Registry)</h3>
-          <RegistryCounter />
-        </div>
-        
-        <div className="info-text" style={{ marginTop: "1rem", fontSize: "0.9em", color: "#666" }}>
-          Try changing the counter, then toggle persistence on and reload the
-          page. The counter state will be preserved when persistence is enabled.
-          <br />
-          <strong>Note:</strong> The Registry Counter properly restores state on reload,
-          while the Legacy Counter will only preserve its value but not StateChange functionality.
+// Example focused specifically on demonstrating the persistence toggle feature
+export const PersistentToggleCounter = () => {
+  return (
+    <div className="example-container">
+      <h2>Persistence Toggle Example</h2>
+      <div className="description">
+        <p>
+          This example focuses on demonstrating how to toggle persistence on and
+          off. Unlike example 04 which starts with persistence enabled, this
+          example starts with persistence disabled by default.
+        </p>
+      </div>
+
+      <StateHistoryProvider storageKey={STORAGE_KEY} defaultPersistent={false}>
+        <Counter />
+
+        <div
+          className="info-text"
+          style={{ marginTop: "1rem", fontSize: "0.9em", color: "#666" }}
+        >
+          Try changing the counter value, then:
+          <ol>
+            <li>Enable persistence using the checkbox below</li>
+            <li>Reload the page to see that your state is preserved</li>
+            <li>Disable persistence and reload again to see the state reset</li>
+          </ol>
+          <strong>Key point:</strong> This demonstrates how users can control
+          whether state persists between sessions.
         </div>
         <HistoryControls
           showPersistenceToggle={true}

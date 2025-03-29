@@ -6,20 +6,20 @@ import React, {
   useCallback,
   useEffect,
   useState,
-} from 'react';
+} from "react";
 import {
   StateChange,
   StateHistoryContextType,
   StateHistoryProviderProps,
-} from '../types';
-import { commandHistoryReducer, initialState } from './StateHistoryReducer';
+} from "../types";
+import { commandHistoryReducer, initialState } from "./StateHistoryReducer";
 import {
   getStorageKey,
   loadStateFromStorage,
   saveStateToStorage,
   clearStoredState,
-} from '../utils/persistenceUtils';
-import { useDeferredActions } from '../utils/renderUtils';
+} from "../utils/persistenceUtils";
+import { useDeferredActions } from "../utils/renderUtils";
 
 // Create the context
 const StateHistoryContext = createContext<StateHistoryContextType | undefined>(
@@ -57,7 +57,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     if (state.isPersistent && !initialLoadAttempted) {
       const persistedState = loadStateFromStorage(finalStorageKey);
       if (persistedState) {
-        dispatch({ type: 'LOAD_PERSISTENT_STATE', state: persistedState });
+        dispatch({ type: "LOAD_PERSISTENT_STATE", state: persistedState });
       }
       setInitialLoadAttempted(true);
     }
@@ -92,7 +92,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
         // Execute StateChange first, outside of reducer
         StateChange.execute();
         // Then update the state
-        dispatch({ type: 'EXECUTE', StateChange });
+        dispatch({ type: "EXECUTE", StateChange });
       });
     },
     [scheduleDeferredAction]
@@ -108,7 +108,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
       // Execute undo first, outside of reducer
       commandToUndo.undo();
       // Then update the state
-      dispatch({ type: 'UNDO' });
+      dispatch({ type: "UNDO" });
     });
   }, [state.undoStack, scheduleDeferredAction]);
 
@@ -122,27 +122,35 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
       // Execute first, outside of reducer
       commandToRedo.execute();
       // Then update the state
-      dispatch({ type: 'REDO' });
+      dispatch({ type: "REDO" });
     });
   }, [state.redoStack, scheduleDeferredAction]);
 
   // Clear StateChange history
   const clear = useCallback(() => {
-    dispatch({ type: 'CLEAR' });
+    dispatch({ type: "CLEAR" });
   }, []);
 
   // Set maximum stack size
   const setMaxStackSize = useCallback((size: number) => {
-    dispatch({ type: 'SET_MAX_STACK_SIZE', size });
+    dispatch({ type: "SET_MAX_STACK_SIZE", size });
   }, []);
 
   // Toggle persistence
   const togglePersistence = useCallback(() => {
+    const newPersistenceState = !state.isPersistent;
     // Handle clearing localStorage if turning off
-    if (state.isPersistent) {
+    if (!newPersistenceState) {
       clearStoredState(finalStorageKey);
+    } else {
+      // If turning on persistence, try to load any existing state
+      const persistedState = loadStateFromStorage(finalStorageKey);
+      if (persistedState) {
+        dispatch({ type: "LOAD_PERSISTENT_STATE", state: persistedState });
+        return; // The LOAD_PERSISTENT_STATE action will also set isPersistent to true
+      }
     }
-    dispatch({ type: 'TOGGLE_PERSISTENCE' });
+    dispatch({ type: "TOGGLE_PERSISTENCE" });
   }, [state.isPersistent, finalStorageKey]);
 
   // Create context value
@@ -171,7 +179,7 @@ export const useHistoryStateContext = (): StateHistoryContextType => {
   const context = useContext(StateHistoryContext);
   if (context === undefined) {
     throw new Error(
-      'useHistoryState must be used within a StateHistoryProvider'
+      "useHistoryState must be used within a StateHistoryProvider"
     );
   }
   return context;

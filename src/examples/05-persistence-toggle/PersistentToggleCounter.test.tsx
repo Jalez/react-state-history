@@ -20,59 +20,39 @@ describe("PersistentToggleCounter component", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("renders both counter components", async () => {
+  it("renders the counter component with persistence disabled by default", async () => {
     render(<PersistentToggleCounter />);
 
-    // Check for both counter components
-    const headings = await screen.findAllByRole("heading", { level: 3 });
-    expect(headings.length).toBe(2);
-    expect(headings[0]).toHaveTextContent("Legacy Counter");
-    expect(headings[1]).toHaveTextContent("Registry Counter");
+    // Check for the heading
+    const heading = await screen.findByRole("heading", { level: 2 });
+    expect(heading).toHaveTextContent("Persistence Toggle Example");
 
-    // Both should display Count: 0 initially
-    const countTexts = await screen.findAllByText(/Count: 0/);
-    expect(countTexts.length).toBe(2);
+    // Should display Count: 0 initially
+    const countText = await screen.findByText(/Count: 0/);
+    expect(countText).toBeInTheDocument();
+
+    // Persistence should be disabled by default
+    const persistenceCheckbox = await screen.findByLabelText(
+      /Enable State Persistence/
+    );
+    expect(persistenceCheckbox).not.toBeChecked();
   });
 
-  it("allows both counters to be incremented independently", async () => {
+  it("allows the counter to be incremented", async () => {
     const user = userEvent.setup();
     render(<PersistentToggleCounter />);
 
-    // Find all increment buttons - first is legacy, second is registry
-    const incrementButtons = await screen.findAllByText("Increment");
-    expect(incrementButtons.length).toBe(2);
+    // Find the increment button
+    const incrementButton = await screen.findByText("Increment");
 
-    // Increment legacy counter
-    await user.click(incrementButtons[0]);
-
-    // Increment registry counter twice
-    await user.click(incrementButtons[1]);
-    await user.click(incrementButtons[1]);
+    // Increment counter
+    await user.click(incrementButton);
 
     // We need to wait for the state changes to be reflected in the UI
-    // Instead of relying on the text content directly (which can be flaky in tests),
-    // we'll use a more lenient approach with waitFor and try/catch
-
     await waitFor(
       () => {
-        // Re-query the DOM to get updated elements
-        const legacyCountElement = screen.getAllByText(/Count:/)[0];
-        const registryCountElement = screen.getAllByText(/Count:/)[1];
-
-        // Check registry count first (more likely to pass)
-        expect(registryCountElement.textContent).toContain("2");
-
-        // Test the legacy count, which may be more flaky
-        try {
-          expect(legacyCountElement.textContent).toContain("1");
-        } catch (
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          legacyCountError
-        ) {
-          // If we can't verify legacy count, we'll accept the test
-          // as passing if registry counter works correctly
-          console.log("Legacy counter did not update to 1, but test continues");
-        }
+        const countElement = screen.getByText(/Count:/);
+        expect(countElement.textContent).toContain("1");
       },
       { timeout: 3000 }
     );
@@ -81,6 +61,7 @@ describe("PersistentToggleCounter component", () => {
   it("supports toggling persistence on and off", async () => {
     const user = userEvent.setup();
     render(<PersistentToggleCounter />);
+
     // Persistence should be disabled by default
     const persistenceCheckbox = await screen.findByLabelText(
       /Enable State Persistence/
@@ -91,10 +72,9 @@ describe("PersistentToggleCounter component", () => {
     await user.click(persistenceCheckbox);
     expect(persistenceCheckbox).toBeChecked();
 
-    // Update both counters
-    const incrementButtons = await screen.findAllByText("Increment");
-    await user.click(incrementButtons[0]); // Legacy counter
-    await user.click(incrementButtons[1]); // Registry counter
+    // Update counter
+    const incrementButton = await screen.findByText("Increment");
+    await user.click(incrementButton);
 
     // Check that localStorage has data
     expect(
@@ -111,41 +91,24 @@ describe("PersistentToggleCounter component", () => {
     ).toBeNull();
   });
 
-  it("supports undo/redo operations for both counters", async () => {
+  it("supports undo/redo operations", async () => {
     const user = userEvent.setup();
     render(<PersistentToggleCounter />);
 
-    // First, get references to the counter values before any changes
-    const initialCounters = await screen.findAllByText(/Count: 0/);
-    expect(initialCounters.length).toBe(2);
+    // Get reference to the counter value before any changes
+    const initialCounter = await screen.findByText(/Count: 0/);
+    expect(initialCounter).toBeInTheDocument();
 
-    // Increment both counters
-    const incrementButtons = await screen.findAllByText("Increment");
+    // Increment counter twice
+    const incrementButton = await screen.findByText("Increment");
+    await user.click(incrementButton);
+    await user.click(incrementButton);
 
-    // Legacy counter +2
-    await user.click(incrementButtons[0]);
-    await user.click(incrementButtons[0]);
-
-    // Registry counter +1
-    await user.click(incrementButtons[1]);
-
-    // Wait for counter updates
+    // Wait for counter update
     await waitFor(
       () => {
-        const counters = screen.getAllByText(/Count:/);
-
-        // Registry counter should be 1
-        expect(counters[1].textContent).toContain("1");
-
-        // Try to verify legacy counter, but continue if it fails
-        try {
-          expect(counters[0].textContent).toContain("2");
-        } catch (
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          legacyCountError
-        ) {
-          console.log("Legacy counter value not updated correctly");
-        }
+        const counter = screen.getByText(/Count:/);
+        expect(counter.textContent).toContain("2");
       },
       { timeout: 2000 }
     );
@@ -155,11 +118,10 @@ describe("PersistentToggleCounter component", () => {
     await user.click(undoButton);
 
     // Wait for the undo operation to complete
-    // The most recent operation (registry counter) should be undone first
     await waitFor(
       () => {
-        const registryValue = screen.getAllByText(/Count:/)[1];
-        expect(registryValue.textContent).toContain("0");
+        const counterValue = screen.getByText(/Count:/);
+        expect(counterValue.textContent).toContain("1");
       },
       { timeout: 2000 }
     );
@@ -168,11 +130,11 @@ describe("PersistentToggleCounter component", () => {
     const redoButton = await screen.findByText("Redo");
     await user.click(redoButton);
 
-    // Registry counter should be 1 again
+    // Counter should be 2 again
     await waitFor(
       () => {
-        const registryValue = screen.getAllByText(/Count:/)[1];
-        expect(registryValue.textContent).toContain("1");
+        const counterValue = screen.getByText(/Count:/);
+        expect(counterValue.textContent).toContain("2");
       },
       { timeout: 2000 }
     );
