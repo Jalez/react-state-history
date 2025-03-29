@@ -44,8 +44,11 @@ describe("PersistentCounter component", () => {
     render(<PersistentCounterExample />);
 
     // Persistence should be enabled by default in this component
-    const checkbox = screen.getByLabelText(/Enable Persistence/);
-    expect(checkbox).toBeChecked();
+    const persistenceButton = screen.getByText("Persistent History");
+    const persistenceCheckbox = persistenceButton.querySelector(
+      'input[type="checkbox"]'
+    );
+    expect(persistenceCheckbox).toBeChecked();
 
     // Change the value
     const incrementButton = screen.getByText("Increment");

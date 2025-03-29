@@ -5,7 +5,7 @@
  * more complex data structures and composite commands.
  *
  * Key concepts demonstrated:
- * - Using useTrackableState for complex state
+ * - Using useTrackableState for complex state (arrays of objects)
  * - Grouping multiple state changes as one undoable operation
  */
 import { useState, useCallback } from "react";
@@ -29,10 +29,10 @@ const TodoList = () => {
     { id: 1, text: "Learn about StateChange Pattern", completed: false },
     { id: 2, text: "Implement Undo/Redo", completed: false },
   ]);
-  
+
   // Regular React state for the input field
   const [newTodoText, setNewTodoText] = useState("");
-  
+
   // Create a StateChange-aware state setter for todos
   // This hook registers the StateChange type automatically
   const updateTodos = useTrackableState<Todo[]>(
@@ -63,31 +63,27 @@ const TodoList = () => {
 
     // Create new todos with all items completed
     const newTodos = todos.map((todo) => ({ ...todo, completed: true }));
-    
-    // Use our StateChange-aware state setter
-    updateTodos(
-      newTodos, 
-      todos,
-      `Complete ${incompleteTodos.length} todos`
-    );
+
+    // Use our StateChange-aware state setter with a descriptive message
+    // This is a composite operation that changes multiple todos at once
+    updateTodos(newTodos, todos, `Complete ${incompleteTodos.length} todos`);
   }, [todos, updateTodos]);
 
   // Toggle a single todo's completion status
-  const toggleTodo = useCallback((id: number) => {
-    const todo = todos.find((t) => t.id === id);
-    if (!todo) return;
+  const toggleTodo = useCallback(
+    (id: number) => {
+      const todo = todos.find((t) => t.id === id);
+      if (!todo) return;
 
-    const newTodos = todos.map((t) =>
-      t.id === id ? { ...t, completed: !t.completed } : t
-    );
-    
-    // Use our StateChange-aware state setter
-    updateTodos(
-      newTodos,
-      todos, 
-      `Toggle "${todo.text}"`
-    );
-  }, [todos, updateTodos]);
+      const newTodos = todos.map((t) =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      );
+
+      // Use our StateChange-aware state setter
+      updateTodos(newTodos, todos, `Toggle "${todo.text}"`);
+    },
+    [todos, updateTodos]
+  );
 
   return (
     <div className="example">
@@ -123,12 +119,14 @@ const TodoList = () => {
 
       <div className="description">
         <p>
-          This example demonstrates using the <code>useTrackableState</code> hook with a more
-          complex data structure (an array of todo items). 
+          This example demonstrates using the <code>useTrackableState</code>{" "}
+          hook with a more complex data structure (an array of todo items).
         </p>
         <p>
-          Try adding todos, marking them complete individually or all at once,
-          then using undo to see how it works.
+          <strong>Key Point:</strong> The "Complete All" button shows a
+          composite command that changes multiple todos at once but is treated
+          as a single operation in the history. Try completing multiple todos
+          and then using undo to reverse them all at once.
         </p>
       </div>
     </div>
@@ -138,7 +136,7 @@ const TodoList = () => {
 // Export the wrapped todo list example
 export const TodoListExample = () => (
   <StateHistoryProvider>
-    <h2>Advanced Example: Todo List with Undo/Redo</h2>
+    <h2>Composite Commands Example: Todo List</h2>
     <TodoList />
   </StateHistoryProvider>
 );

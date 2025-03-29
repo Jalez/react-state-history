@@ -6,6 +6,18 @@
 
 `react-state-history` provides a flexible and robust system for managing state history (undo/redo) in React applications using TypeScript. It leverages the Command Pattern and offers features like state persistence, composite commands, and a command registry for serializable actions.
 
+## What is the Command Pattern?
+
+The Command Pattern is a behavioral design pattern that encapsulates a request as an object, allowing for parameterization of clients with different requests, queuing of requests, and logging of the operations. In `react-state-history`, this pattern is central to how undo/redo functionality works:
+
+- **Commands as Objects**: Each state change is represented as a `StateChange` object with specific methods.
+- **Execute & Undo**: Every command knows how to perform its action (`execute`) and how to reverse it (`undo`).
+- **Command History**: Commands are stored in stacks, enabling traversal through state history.
+- **Serialization**: Commands can be converted to/from JSON for persistence.
+- **Composition**: Multiple commands can be grouped into a single composite command.
+
+This approach separates the logic that modifies state from the components that trigger these modifications, making the system more maintainable and enabling powerful features like undo/redo and state persistence.
+
 ## Features
 
 - **Command Pattern:** Encapsulates state changes as `StateChange` objects with `execute` and `undo` methods.
@@ -89,14 +101,11 @@ Use this hook when you already have a state setter function (e.g., from `useStat
 ```typescript
 // filepath: src/components/MyTrackedInput.tsx
 import React, { useState } from "react";
-import {
-  useTrackableState,
-  HistoryControls,
-} from "../StateHistory"; // Adjust path
+import { useTrackableState, HistoryControls } from "../StateHistory"; // Adjust path
 
 export function MyTrackedInput() {
   const [text, setTextDirect] = useState("");
-  
+
   // useTrackableState automatically registers the command type internally
   // No need to call registerValueChangeCommand separately
   const trackTextChange = useTrackableState<string>("input/set", setTextDirect);
@@ -212,9 +221,10 @@ function CompositeActionComponent() {
 
 ### 5. Persistence
 
-Enable persistence by setting `defaultPersistent={true}` or providing a `storageKey` on the `StateHistoryProvider`. 
+Enable persistence by setting `defaultPersistent={true}` or providing a `storageKey` on the `StateHistoryProvider`.
 
 For persistence to work correctly:
+
 - When using `useHistoryState` or `useTrackableState` hooks, registration is handled automatically
 - For custom commands, use `createValueChangeCommand` or `createRegisteredCommand` after registering with `registerCommand` or `registerValueChangeCommand`
 

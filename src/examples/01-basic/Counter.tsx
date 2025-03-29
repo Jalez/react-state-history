@@ -12,9 +12,12 @@
  * @format
  */
 
-import { StateHistoryProvider, useHistoryState } from "../../StateHistory";
+import {
+  StateHistoryProvider,
+  useHistoryState,
+  HistoryControls,
+} from "../../StateHistory";
 
-import HistoryControls from "../../StateHistory/components/HistoryControls";
 // Reusable counter logic component with undo/redo functionality
 export const Counter = ({ initialValue = 0 }: { initialValue?: number }) => {
   // useHistoryState provides a value and a setter that automatically creates commands
@@ -40,8 +43,6 @@ export const Counter = ({ initialValue = 0 }: { initialValue?: number }) => {
       <div className="result">
         <p>Count: {count}</p>
       </div>
-
-      <div className="undo-redo"></div>
     </div>
   );
 };
@@ -61,7 +62,7 @@ export const CounterExample = () => (
         Try changing the counter value and then using the undo/redo buttons.
       </p>
     </div>
-    <HistoryControls />
     <Counter />
+    <HistoryControls />
   </StateHistoryProvider>
 );

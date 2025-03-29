@@ -31,10 +31,15 @@ describe("PersistentToggleCounter component", () => {
     const countText = await screen.findByText(/Count: 0/);
     expect(countText).toBeInTheDocument();
 
-    // Persistence should be disabled by default
-    const persistenceCheckbox = await screen.findByLabelText(
-      /Enable State Persistence/
+    // Find persistence toggle button
+    const persistenceButton = await screen.findByText(
+      "Enable State Persistence"
     );
+    const persistenceCheckbox = persistenceButton.querySelector(
+      'input[type="checkbox"]'
+    );
+
+    // Persistence should be disabled by default
     expect(persistenceCheckbox).not.toBeChecked();
   });
 
@@ -62,15 +67,24 @@ describe("PersistentToggleCounter component", () => {
     const user = userEvent.setup();
     render(<PersistentToggleCounter />);
 
-    // Persistence should be disabled by default
-    const persistenceCheckbox = await screen.findByLabelText(
-      /Enable State Persistence/
+    // Find persistence toggle button
+    const persistenceButton = await screen.findByText(
+      "Enable State Persistence"
     );
+    const persistenceCheckbox = persistenceButton.querySelector(
+      'input[type="checkbox"]'
+    );
+
+    // Persistence should be disabled by default
     expect(persistenceCheckbox).not.toBeChecked();
 
-    // Enable persistence
-    await user.click(persistenceCheckbox);
-    expect(persistenceCheckbox).toBeChecked();
+    // Enable persistence by clicking the button
+    await user.click(persistenceButton);
+
+    // Check that checkbox is now checked
+    expect(
+      persistenceButton.querySelector('input[type="checkbox"]')
+    ).toBeChecked();
 
     // Update counter
     const incrementButton = await screen.findByText("Increment");
@@ -81,9 +95,13 @@ describe("PersistentToggleCounter component", () => {
       localStorage.getItem("state_history_persistent-toggle-counter")
     ).toBeTruthy();
 
-    // Disable persistence
-    await user.click(persistenceCheckbox);
-    expect(persistenceCheckbox).not.toBeChecked();
+    // Disable persistence by clicking the button again
+    await user.click(persistenceButton);
+
+    // Check that checkbox is unchecked
+    expect(
+      persistenceButton.querySelector('input[type="checkbox"]')
+    ).not.toBeChecked();
 
     // Storage should be cleared when persistence is disabled
     expect(
