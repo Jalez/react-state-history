@@ -4,6 +4,9 @@ import { StateChange, CommandFunction, StateHistory } from "../types";
 // Storage key prefix for localStorage
 export const STORAGE_KEY_PREFIX = "state_history_";
 
+// Export the HistoryAction type
+export type { HistoryAction };
+
 // Define action types
 type HistoryAction =
   | { type: "EXECUTE"; StateChange: StateChange }
@@ -17,11 +20,11 @@ type HistoryAction =
   | {
       type: "REGISTER_COMMAND";
       name: string;
-      executeFn: (params: any) => void;
-      undoFn: (params: any) => void;
+      executeFn: (params: unknown) => void;
+      undoFn: (params: unknown) => void;
     }
   | { type: "UNREGISTER_COMMAND"; name: string }
-  | { type: "@@INIT" };  // Adding support for initialization action
+  | { type: "@@INIT" };
 
 // Define initial state
 export const initialState: StateHistory = {
@@ -143,7 +146,7 @@ export const commandHistoryReducer = (
     }
 
     case "REGISTER_COMMAND": {
-      const commandFunction: CommandFunction<any> = {
+      const commandFunction: CommandFunction<unknown> = {
         execute: action.executeFn,
         undo: action.undoFn,
       };

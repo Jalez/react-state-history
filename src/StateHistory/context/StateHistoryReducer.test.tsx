@@ -1,10 +1,11 @@
 /** @format */
 import { describe, it, expect } from 'vitest';
+import { HistoryAction } from './StateHistoryReducer';
 import { commandHistoryReducer, initialState } from './StateHistoryReducer';
 
 describe('commandHistoryReducer', () => {
   it('should initialize with correct initial state', () => {
-    const state = commandHistoryReducer(undefined, { type: '@@INIT' } as any);
+    const state = commandHistoryReducer(undefined, { type: '@@INIT' } as HistoryAction);
     expect(state).toEqual(initialState);
   });
 

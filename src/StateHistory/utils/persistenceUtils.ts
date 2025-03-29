@@ -40,13 +40,14 @@ export function serializeCommand(cmd: StateChange): SerializableStateChange | Re
 /**
  * Deserializes a StateChange from localStorage format
  */
-export function deserializeCommand(
+export function deserializeCommand<T>(
   serialized: SerializableStateChange | Record<string, unknown>,
-  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+  contextRegistry?: Record<string, { execute: (params: T) => void; undo: (params: T) => void }>
+
 ): StateChange {
   // If the serialized StateChange has commandName and params, use registry deserialization
   if ('commandName' in serialized && 'params' in serialized) {
-    return hydrateCommand(serialized as SerializableStateChange, contextRegistry);
+    return hydrateCommand(serialized as SerializableStateChange<T>, contextRegistry);
   }
   
   // Fall back to legacy deserialization for old commands
@@ -109,9 +110,10 @@ export function saveStateToStorage(
 /**
  * Loads the StateChange history state from localStorage
  */
-export function loadStateFromStorage(
+export function loadStateFromStorage<T>(
   storageKey: string,
-  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+  contextRegistry?: Record<string, { execute: (params: T) => void; undo: (params: T) => void }>
+
 ): Partial<StateHistory> | null {
   try {
     const savedState = localStorage.getItem(storageKey);

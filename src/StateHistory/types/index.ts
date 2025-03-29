@@ -112,7 +112,12 @@ export type StateHistoryAction =
   | { type: "SET_MAX_STACK_SIZE"; size: number }
   | { type: "TOGGLE_PERSISTENCE" }
   | { type: "LOAD_PERSISTENT_STATE"; state: Partial<StateHistory> }
-  | { type: "REGISTER_COMMAND"; name: string; executeFn: (params: any) => void; undoFn: (params: any) => void }
+  | {
+      type: "REGISTER_COMMAND";
+      name: string;
+      executeFn: <T>(params: T) => void;
+      undoFn: <T>(params: T) => void;
+    }
   | { type: "UNREGISTER_COMMAND"; name: string };
 
 /**

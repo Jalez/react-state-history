@@ -85,7 +85,7 @@ export function registerCommand<T>(
 }
 
 // Legacy global registry fallback for backward compatibility
-let globalRegistryFallback: Record<string, { execute: Function, undo: Function }> = {};
+const globalRegistryFallback: Record<string, { execute: (params: unknown) => void, undo: (params: unknown) => void  }> = {};
 
 /**
  * For backward compatibility only - do not use in new code
@@ -124,7 +124,7 @@ export function hasCommand(name: string): boolean {
  */
 export function hydrateCommand<T>(
   serializableStateChange: SerializableStateChange<T>,
-  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+  contextRegistry?: Record<string, { execute: (params: T) => void; undo: (params: T) => void }>
 ): StateChange<T> {
   const { id, commandName, params, description } = serializableStateChange;
   
@@ -208,7 +208,7 @@ export function createRegistryCommand<T>(
   params: T,
   id: string,
   description?: string,
-  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+  contextRegistry?: Record<string, { execute: (params: T) => void; undo: (params: T) => void }>
 ): StateChange<T> {
   // Use either the provided registry or fall back to global registry
   const registry = contextRegistry || getGlobalRegistryFallback();

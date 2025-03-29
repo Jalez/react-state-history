@@ -158,7 +158,7 @@ export function createValueChangeCommand<T>(
   oldValue: T,
   newValue: T,
   description?: string,
-  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+  contextRegistry?: Record<string, { execute: () => void; undo: () => void }>
 ): StateChange {
   const defaultDescription = `Change from ${String(oldValue)} to ${String(newValue)}`;
   

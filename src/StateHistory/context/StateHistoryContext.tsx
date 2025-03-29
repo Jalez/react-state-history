@@ -232,14 +232,14 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     name: string,
     executeFn: (params: T) => void,
     undoFn: (params: T) => void
-  ) => {
+  ): void => {
     dispatch({ 
       type: "REGISTER_COMMAND", 
       name, 
-      executeFn: executeFn as (params: any) => void,
-      undoFn: undoFn as (params: any) => void
+      executeFn: executeFn as (params: unknown) => void,
+      undoFn: undoFn as (params: unknown) => void
     });
-  }, []);
+  }, [dispatch]);
 
   // Unregister a command from the context's registry
   const unregisterCommand = useCallback((name: string) => {
