@@ -1,49 +1,57 @@
 /** @format */
-import { StateHistory, StateHistoryAction } from '../types';
+import { StateChange, CommandFunction, StateHistory } from "../types";
 
-// Storage key for persistent state
+// Storage key prefix for localStorage
 export const STORAGE_KEY_PREFIX = "state_history_";
 
-// Initial state
+// Define action types
+type HistoryAction =
+  | { type: "EXECUTE"; StateChange: StateChange }
+  | { type: "UNDO" }
+  | { type: "REDO" }
+  | { type: "CLEAR" }
+  | { type: "SET_MAX_STACK_SIZE"; size: number }
+  | { type: "TOGGLE_PERSISTENCE" }
+  | { type: "LOAD_PERSISTENT_STATE"; state: Partial<StateHistory> }
+  | { type: "RECONNECT_COMMANDS"; state: Partial<StateHistory> }
+  | {
+      type: "REGISTER_COMMAND";
+      name: string;
+      executeFn: (params: any) => void;
+      undoFn: (params: any) => void;
+    }
+  | { type: "UNREGISTER_COMMAND"; name: string }
+  | { type: "@@INIT" };  // Adding support for initialization action
+
+// Define initial state
 export const initialState: StateHistory = {
   undoStack: [],
   redoStack: [],
+  maxStackSize: 100,
+  isPersistent: false,
+  commandRegistry: {},
   canUndo: false,
   canRedo: false,
-  maxStackSize: 50,
-  isPersistent: false,
-};
-
-// Placeholder function for deserialized commands
-export const placeholderFunction = () => {
-  // This doesn't need to do anything, as we'll use component-level
-  // logic to reconstruct the state
-  console.log('Executing placeholder function');
 };
 
 /**
- * Reducer function for StateChange history state
+ * Reducer for command history state management
  */
-export function commandHistoryReducer(
-  state: StateHistory,
-  action: StateHistoryAction
-): StateHistory {
+export const commandHistoryReducer = (
+  state: StateHistory = initialState,
+  action: HistoryAction
+): StateHistory => {
   switch (action.type) {
     case "EXECUTE": {
-      const StateChange = action.StateChange;
-      if (!StateChange) return state;
-
-      // The StateChange execution happens outside the reducer
-      const newUndoStack = [...state.undoStack, StateChange];
-
+      // Calculate new undo stack while respecting maxStackSize
+      const newUndoStack = [...state.undoStack, action.StateChange];
       if (newUndoStack.length > state.maxStackSize) {
-        newUndoStack.shift();
+        newUndoStack.shift(); // Remove oldest item if exceeding max size
       }
-
       return {
         ...state,
         undoStack: newUndoStack,
-        redoStack: [],
+        redoStack: [], // Clear redo stack on new command
         canUndo: true,
         canRedo: false,
       };
@@ -51,13 +59,9 @@ export function commandHistoryReducer(
 
     case "UNDO": {
       if (state.undoStack.length === 0) return state;
-
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
-      // The StateChange undo happens outside the reducer
-      
       const newUndoStack = state.undoStack.slice(0, -1);
       const newRedoStack = [...state.redoStack, commandToUndo];
-
       return {
         ...state,
         undoStack: newUndoStack,
@@ -69,17 +73,9 @@ export function commandHistoryReducer(
 
     case "REDO": {
       if (state.redoStack.length === 0) return state;
-
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
-      // The StateChange execution happens outside the reducer
-      
       const newRedoStack = state.redoStack.slice(0, -1);
       const newUndoStack = [...state.undoStack, commandToRedo];
-
-      if (newUndoStack.length > state.maxStackSize) {
-        newUndoStack.shift();
-      }
-
       return {
         ...state,
         undoStack: newUndoStack,
@@ -100,42 +96,82 @@ export function commandHistoryReducer(
     }
 
     case "SET_MAX_STACK_SIZE": {
-      const validSize = Math.max(1, action.size);
-      let newUndoStack = state.undoStack;
-
-      if (newUndoStack.length > validSize) {
-        newUndoStack = newUndoStack.slice(-validSize);
+      // Adjust undo stack if needed
+      let newUndoStack = [...state.undoStack];
+      if (newUndoStack.length > action.size) {
+        newUndoStack = newUndoStack.slice(
+          newUndoStack.length - action.size,
+          newUndoStack.length
+        );
       }
-
       return {
         ...state,
-        maxStackSize: validSize,
         undoStack: newUndoStack,
+        maxStackSize: action.size,
+        canUndo: newUndoStack.length > 0,
       };
     }
 
     case "TOGGLE_PERSISTENCE": {
-      const isPersistent = !state.isPersistent;
       return {
         ...state,
-        isPersistent,
+        isPersistent: !state.isPersistent,
       };
     }
 
     case "LOAD_PERSISTENT_STATE": {
+      const undoStack = action.state.undoStack || state.undoStack;
+      const redoStack = action.state.redoStack || state.redoStack;
+      
+      // Only merge specified fields
+      return {
+        ...state,
+        undoStack,
+        redoStack,
+        maxStackSize: action.state.maxStackSize || state.maxStackSize,
+        isPersistent: action.state.isPersistent ?? state.isPersistent,
+        canUndo: undoStack.length > 0,
+        canRedo: redoStack.length > 0,
+      };
+    }
+
+    case "RECONNECT_COMMANDS": {
       return {
         ...state,
         ...action.state,
-        canUndo: action.state.undoStack
-          ? action.state.undoStack.length > 0
-          : false,
-        canRedo: action.state.redoStack
-          ? action.state.redoStack.length > 0
-          : false,
       };
+    }
+
+    case "REGISTER_COMMAND": {
+      const commandFunction: CommandFunction<any> = {
+        execute: action.executeFn,
+        undo: action.undoFn,
+      };
+
+      return {
+        ...state,
+        commandRegistry: {
+          ...state.commandRegistry,
+          [action.name]: commandFunction,
+        },
+      };
+    }
+
+    case "UNREGISTER_COMMAND": {
+      const newCommandRegistry = { ...state.commandRegistry };
+      delete newCommandRegistry[action.name];
+      
+      return {
+        ...state,
+        commandRegistry: newCommandRegistry,
+      };
+    }
+
+    case "@@INIT": {
+      return initialState;
     }
 
     default:
       return state;
   }
-}
+};

@@ -1,39 +1,8 @@
 /** @format */
 
 import React from "react";
-import {
-  StateHistoryProvider,
-  useHistoryState,
-  HistoryControls,
-} from "../../StateHistory";
-
-// Counter with registry-based persistence using the simplified hooks
-export const Counter = () => {
-  // The useHistoryState hook registers commands automatically
-  // and handles persistence without any additional boilerplate
-  const [count, setCount, resetCount] = useHistoryState<number>(
-    "persistentCounter/setValue",
-    0
-  );
-
-  // Simple handlers that use the StateChange-aware state setter
-  const increment = () => setCount(count + 1);
-  const decrement = () => setCount(count - 1);
-  const reset = () => resetCount();
-
-  return (
-    <div className="example">
-      <div className="controls">
-        <button onClick={increment}>Increment</button>
-        <button onClick={decrement}>Decrement</button>
-        <button onClick={reset}>Reset counter</button>
-      </div>
-      <div className="result">
-        <p>Count: {count}</p>
-      </div>
-    </div>
-  );
-};
+import { StateHistoryProvider, HistoryControls } from "../../StateHistory";
+import { Counter } from "../01-basic/Counter";
 
 // Wrap the counter with StateHistoryProvider with persistence enabled by default
 export const PersistentCounterExample: React.FC = () => {
@@ -58,7 +27,7 @@ export const PersistentCounterExample: React.FC = () => {
           changing the value and refreshing the page to see it persist.
         </p>
       </div>
-      <Counter />
+      <Counter commandType="counter/persistent" />
       <HistoryControls showPersistenceToggle={true} />
     </StateHistoryProvider>
   );

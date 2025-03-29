@@ -1,175 +1,218 @@
+/** @format */
 import { describe, it, expect } from 'vitest';
 import { commandHistoryReducer, initialState } from './StateHistoryReducer';
-import { StateChange, StateHistoryAction, StateHistory } from '../types';
 
 describe('commandHistoryReducer', () => {
-  // Create mock commands for testing
-  const createMockCommand = (id: string): StateChange => ({
-    execute: () => {},
-    undo: () => {},
-    id,
-    description: `Mock StateChange ${id}`
-  });
-
   it('should initialize with correct initial state', () => {
-    expect(initialState).toEqual({
-      undoStack: [],
-      redoStack: [],
-      canUndo: false,
-      canRedo: false,
-      maxStackSize: 50,
-      isPersistent: false,
-    });
+    const state = commandHistoryReducer(undefined, { type: '@@INIT' } as any);
+    expect(state).toEqual(initialState);
   });
 
   it('should handle EXECUTE action', () => {
-    const StateChange = createMockCommand('cmd1');
-    const action: StateHistoryAction = { type: 'EXECUTE', StateChange };
-    
-    const nextState = commandHistoryReducer(initialState, action);
-    
-    expect(nextState.undoStack).toEqual([StateChange]);
-    expect(nextState.redoStack).toEqual([]);
-    expect(nextState.canUndo).toBe(true);
-    expect(nextState.canRedo).toBe(false);
+    const testCommand = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id',
+      description: 'Test command',
+    };
+
+    const state = commandHistoryReducer(initialState, {
+      type: 'EXECUTE',
+      StateChange: testCommand,
+    });
+
+    expect(state.undoStack).toHaveLength(1);
+    expect(state.undoStack[0]).toBe(testCommand);
+    expect(state.redoStack).toHaveLength(0);
+    expect(state.canUndo).toBe(true);
+    expect(state.canRedo).toBe(false);
   });
 
   it('should handle UNDO action', () => {
-    const command1 = createMockCommand('cmd1');
-    const command2 = createMockCommand('cmd2');
-    
-    // Set up state with two commands in the undo stack
-    const currentState: StateHistory = {
-      ...initialState,
-      undoStack: [command1, command2],
-      canUndo: true
+    const testCommand = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id',
+      description: 'Test command',
     };
-    
-    const action: StateHistoryAction = { type: 'UNDO' };
-    const nextState = commandHistoryReducer(currentState, action);
-    
-    expect(nextState.undoStack).toEqual([command1]);
-    expect(nextState.redoStack).toEqual([command2]);
-    expect(nextState.canUndo).toBe(true); // Still true because command1 is still in the stack
-    expect(nextState.canRedo).toBe(true); // Now true because command2 is in the redo stack
+
+    // Set up the initial state with a command in the undoStack
+    const startingState = {
+      ...initialState,
+      undoStack: [testCommand],
+      canUndo: true,
+    };
+
+    const state = commandHistoryReducer(startingState, { type: 'UNDO' });
+
+    expect(state.undoStack).toHaveLength(0);
+    expect(state.redoStack).toHaveLength(1);
+    expect(state.redoStack[0]).toBe(testCommand);
+    expect(state.canUndo).toBe(false);
+    expect(state.canRedo).toBe(true);
   });
-  
+
   it('should handle REDO action', () => {
-    const command1 = createMockCommand('cmd1');
-    const command2 = createMockCommand('cmd2');
-    
-    // Set up state with one StateChange in each stack
-    const currentState: StateHistory = {
-      ...initialState,
-      undoStack: [command1],
-      redoStack: [command2],
-      canUndo: true,
-      canRedo: true
+    const testCommand = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id',
+      description: 'Test command',
     };
-    
-    const action: StateHistoryAction = { type: 'REDO' };
-    const nextState = commandHistoryReducer(currentState, action);
-    
-    expect(nextState.undoStack).toEqual([command1, command2]);
-    expect(nextState.redoStack).toEqual([]);
-    expect(nextState.canUndo).toBe(true);
-    expect(nextState.canRedo).toBe(false);
+
+    // Set up the initial state with a command in the redoStack
+    const startingState = {
+      ...initialState,
+      redoStack: [testCommand],
+      canRedo: true,
+    };
+
+    const state = commandHistoryReducer(startingState, { type: 'REDO' });
+
+    expect(state.undoStack).toHaveLength(1);
+    expect(state.undoStack[0]).toBe(testCommand);
+    expect(state.redoStack).toHaveLength(0);
+    expect(state.canUndo).toBe(true);
+    expect(state.canRedo).toBe(false);
   });
-  
+
   it('should handle CLEAR action', () => {
-    // Set up state with commands in both stacks
-    const currentState: StateHistory = {
+    const testCommand = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id',
+      description: 'Test command',
+    };
+
+    // Set up the initial state with commands in both stacks
+    const startingState = {
       ...initialState,
-      undoStack: [createMockCommand('cmd1')],
-      redoStack: [createMockCommand('cmd2')],
+      undoStack: [testCommand],
+      redoStack: [testCommand],
       canUndo: true,
-      canRedo: true
+      canRedo: true,
     };
-    
-    const action: StateHistoryAction = { type: 'CLEAR' };
-    const nextState = commandHistoryReducer(currentState, action);
-    
-    expect(nextState.undoStack).toEqual([]);
-    expect(nextState.redoStack).toEqual([]);
-    expect(nextState.canUndo).toBe(false);
-    expect(nextState.canRedo).toBe(false);
+
+    const state = commandHistoryReducer(startingState, { type: 'CLEAR' });
+
+    expect(state.undoStack).toHaveLength(0);
+    expect(state.redoStack).toHaveLength(0);
+    expect(state.canUndo).toBe(false);
+    expect(state.canRedo).toBe(false);
   });
-  
+
   it('should handle SET_MAX_STACK_SIZE action', () => {
-    const commands = Array.from({ length: 10 }, (_, i) => createMockCommand(`cmd${i}`));
-    
-    // Set up state with multiple commands
-    const currentState: StateHistory = {
-      ...initialState,
-      undoStack: commands,
-      canUndo: true
+    const testCommand1 = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id-1',
+      description: 'Test command 1',
     };
-    
-    // Reduce the max stack size to 5
-    const action: StateHistoryAction = { type: 'SET_MAX_STACK_SIZE', size: 5 };
-    const nextState = commandHistoryReducer(currentState, action);
-    
-    // Should trim the stack to only the 5 most recent commands
-    expect(nextState.undoStack.length).toBe(5);
-    expect(nextState.undoStack[0].id).toBe('cmd5'); // Should keep the 5 most recent
-    expect(nextState.undoStack[4].id).toBe('cmd9');
-    expect(nextState.maxStackSize).toBe(5);
+    const testCommand2 = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id-2',
+      description: 'Test command 2',
+    };
+
+    // Set up the initial state with two commands in the undoStack
+    const startingState = {
+      ...initialState,
+      undoStack: [testCommand1, testCommand2],
+      canUndo: true,
+    };
+
+    // Set max stack size to 1 - this should truncate the undoStack
+    const state = commandHistoryReducer(startingState, {
+      type: 'SET_MAX_STACK_SIZE',
+      size: 1,
+    });
+
+    expect(state.maxStackSize).toBe(1);
+    expect(state.undoStack).toHaveLength(1);
+    expect(state.undoStack[0]).toBe(testCommand2);
   });
-  
+
   it('should handle TOGGLE_PERSISTENCE action', () => {
-    // Start with persistence disabled
-    const state: StateHistory = { ...initialState, isPersistent: false };
-    
-    // Toggle on
-    const action: StateHistoryAction = { type: 'TOGGLE_PERSISTENCE' };
-    let nextState = commandHistoryReducer(state, action);
-    expect(nextState.isPersistent).toBe(true);
-    
-    // Toggle off
-    nextState = commandHistoryReducer(nextState, action);
+    const state = commandHistoryReducer(initialState, {
+      type: 'TOGGLE_PERSISTENCE',
+    });
+
+    expect(state.isPersistent).toBe(true);
+
+    const nextState = commandHistoryReducer(state, {
+      type: 'TOGGLE_PERSISTENCE',
+    });
+
     expect(nextState.isPersistent).toBe(false);
   });
-  
+
   it('should handle LOAD_PERSISTENT_STATE action', () => {
-    const commands = [createMockCommand('cmd1'), createMockCommand('cmd2')];
-    
-    // Create a partial state to load
-    const persistedState: Partial<StateHistory> = {
-      undoStack: commands,
+    const testCommand = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id',
+      description: 'Test command',
+    };
+
+    const loadedState = {
+      undoStack: [testCommand],
       redoStack: [],
       maxStackSize: 100,
-      isPersistent: true
+      isPersistent: true,
     };
-    
-    // Load a persistent state
-    const action: StateHistoryAction = { 
-      type: 'LOAD_PERSISTENT_STATE', 
-      state: persistedState
-    };
-    
-    const nextState = commandHistoryReducer(initialState, action);
-    
-    expect(nextState.undoStack).toEqual(commands);
-    expect(nextState.canUndo).toBe(true);
-    expect(nextState.maxStackSize).toBe(100);
-    expect(nextState.isPersistent).toBe(true);
+
+    const state = commandHistoryReducer(initialState, {
+      type: 'LOAD_PERSISTENT_STATE',
+      state: loadedState,
+    });
+
+    expect(state.undoStack).toEqual([testCommand]);
+    expect(state.redoStack).toEqual([]);
+    expect(state.maxStackSize).toBe(100);
+    expect(state.isPersistent).toBe(true);
+    expect(state.canUndo).toBe(true);
+    expect(state.canRedo).toBe(false);
+    // Command registry should be preserved from the initial state
+    expect(state.commandRegistry).toEqual(initialState.commandRegistry);
   });
-  
+
   it('should respect maxStackSize when executing commands', () => {
-    // Create a state with maxStackSize of 3
-    let state: StateHistory = { ...initialState, maxStackSize: 3 };
-    
-    // Add 4 commands
-    for (let i = 0; i < 4; i++) {
-      const StateChange = createMockCommand(`cmd${i}`);
-      const action: StateHistoryAction = { type: 'EXECUTE', StateChange };
-      state = commandHistoryReducer(state, action);
-    }
-    
-    // Should only keep the 3 most recent commands
-    expect(state.undoStack.length).toBe(3);
-    expect(state.undoStack[0].id).toBe('cmd1'); // First StateChange should be dropped
-    expect(state.undoStack[1].id).toBe('cmd2');
-    expect(state.undoStack[2].id).toBe('cmd3');
+    const testCommand1 = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id-1',
+      description: 'Test command 1',
+    };
+    const testCommand2 = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id-2',
+      description: 'Test command 2',
+    };
+    const testCommand3 = {
+      execute: () => {},
+      undo: () => {},
+      id: 'test-id-3',
+      description: 'Test command 3',
+    };
+
+    // Set up a starting state with max stack size of 2
+    const startingState = {
+      ...initialState,
+      maxStackSize: 2,
+      undoStack: [testCommand1, testCommand2],
+      canUndo: true,
+    };
+
+    // Execute a new command - this should push out the oldest command
+    const state = commandHistoryReducer(startingState, {
+      type: 'EXECUTE',
+      StateChange: testCommand3,
+    });
+
+    expect(state.undoStack).toHaveLength(2);
+    expect(state.undoStack[0]).toBe(testCommand2);
+    expect(state.undoStack[1]).toBe(testCommand3);
   });
 });

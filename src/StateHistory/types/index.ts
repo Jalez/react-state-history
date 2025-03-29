@@ -42,6 +42,26 @@ export interface StateChange<T = unknown> {
 export type StateChangeFactory<T> = (params: T) => StateChange;
 
 /**
+ * Represents a registered StateChange function
+ */
+export interface CommandFunction<T = unknown> {
+  /**
+   * Execute the StateChange with given parameters
+   */
+  execute: (params: T) => void;
+  
+  /**
+   * Undo the StateChange with given parameters
+   */
+  undo: (params: T) => void;
+}
+
+/**
+ * Registry for storing StateChange functions by name
+ */
+export type CommandRegistry = Record<string, CommandFunction<unknown>>;
+
+/**
  * State for the StateChange history store
  */
 export interface StateHistory {
@@ -74,6 +94,11 @@ export interface StateHistory {
    * Whether the StateChange history should persist between page reloads
    */
   isPersistent: boolean;
+  
+  /**
+   * Per-context command registry to isolate command types between different provider instances
+   */
+  commandRegistry: CommandRegistry;
 }
 
 /**
@@ -86,7 +111,9 @@ export type StateHistoryAction =
   | { type: "CLEAR" }
   | { type: "SET_MAX_STACK_SIZE"; size: number }
   | { type: "TOGGLE_PERSISTENCE" }
-  | { type: "LOAD_PERSISTENT_STATE"; state: Partial<StateHistory> };
+  | { type: "LOAD_PERSISTENT_STATE"; state: Partial<StateHistory> }
+  | { type: "REGISTER_COMMAND"; name: string; executeFn: (params: any) => void; undoFn: (params: any) => void }
+  | { type: "UNREGISTER_COMMAND"; name: string };
 
 /**
  * Context interface that extends the state with available operations
@@ -121,6 +148,26 @@ export interface StateHistoryContextType extends StateHistory {
    * Toggle StateChange persistence
    */
   togglePersistence: () => void;
+  
+  /**
+   * Register a command in the context-specific registry
+   */
+  registerCommand: <T>(name: string, executeFn: (params: T) => void, undoFn: (params: T) => void) => void;
+  
+  /**
+   * Unregister a command from the context-specific registry
+   */
+  unregisterCommand: (name: string) => void;
+  
+  /**
+   * Get a command from the context-specific registry
+   */
+  getCommand: <T>(name: string) => CommandFunction<T> | undefined;
+  
+  /**
+   * Check if a command exists in the context-specific registry
+   */
+  hasCommand: (name: string) => boolean;
 }
 
 /**

@@ -33,15 +33,14 @@ const TodoList = () => {
   // Regular React state for the input field
   const [newTodoText, setNewTodoText] = useState("");
 
-  // Create a StateChange-aware state setter for todos
-  // This hook registers the StateChange type automatically
+  // Get the state change updater only once during component initialization
   const updateTodos = useTrackableState<Todo[]>(
     "todoList/updateTodos",
     setTodos
   );
 
   // Add a single todo with the StateChange-aware state setter
-  const addTodo = () => {
+  const addTodo = useCallback(() => {
     if (!newTodoText.trim()) return;
 
     const newTodo: Todo = {
@@ -51,9 +50,10 @@ const TodoList = () => {
     };
 
     // Use our StateChange-aware state setter
-    updateTodos([...todos, newTodo], todos, `Add todo: ${newTodo.text}`);
+    const newTodos = [...todos, newTodo];
+    updateTodos(newTodos, todos, `Add todo: ${newTodo.text}`);
     setNewTodoText(""); // Clear input (doesn't need undo/redo)
-  };
+  }, [newTodoText, todos, updateTodos]);
 
   // Complete all todos at once
   const completeAllTodos = useCallback(() => {
@@ -65,7 +65,6 @@ const TodoList = () => {
     const newTodos = todos.map((todo) => ({ ...todo, completed: true }));
 
     // Use our StateChange-aware state setter with a descriptive message
-    // This is a composite operation that changes multiple todos at once
     updateTodos(newTodos, todos, `Complete ${incompleteTodos.length} todos`);
   }, [todos, updateTodos]);
 

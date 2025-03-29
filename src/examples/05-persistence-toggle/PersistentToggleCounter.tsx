@@ -1,35 +1,7 @@
-import {
-  StateHistoryProvider,
-  useHistoryState,
-  HistoryControls,
-} from "../../StateHistory";
+import { StateHistoryProvider, HistoryControls } from "../../StateHistory";
+import { Counter } from "../01-basic/Counter";
 
 const STORAGE_KEY = "persistent-toggle-counter";
-
-// Simple counter that uses the useHistoryState hook
-const Counter = () => {
-  const [count, setCount, resetCount] = useHistoryState<number>(
-    "toggleCounter/setValue",
-    0
-  );
-
-  const increment = () => setCount(count + 1);
-  const decrement = () => setCount(count - 1);
-  const reset = () => resetCount();
-
-  return (
-    <div className="example">
-      <div className="controls">
-        <button onClick={increment}>Increment</button>
-        <button onClick={decrement}>Decrement</button>
-        <button onClick={reset}>Reset counter</button>
-      </div>
-      <div className="result">
-        <p>Count: {count}</p>
-      </div>
-    </div>
-  );
-};
 
 // Example focused specifically on demonstrating the persistence toggle feature
 export const PersistentToggleCounter = () => {
@@ -45,7 +17,7 @@ export const PersistentToggleCounter = () => {
       </div>
 
       <StateHistoryProvider storageKey={STORAGE_KEY} defaultPersistent={false}>
-        <Counter />
+        <Counter commandType="counter/persistent" />
 
         <div
           className="info-text"

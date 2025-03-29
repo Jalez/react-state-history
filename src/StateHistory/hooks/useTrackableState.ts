@@ -1,10 +1,7 @@
 /** @format */
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useHistoryStateContext } from '../context/StateHistoryContext';
-import {
-  registerValueChangeCommand,
-  createValueChangeCommand,
-} from '../utils/stateChangeUtils';
+import { createValueChangeCommand } from '../utils/stateChangeUtils';
 
 /**
  * The module provides two complementary hooks for state management with undo/redo support:
@@ -23,6 +20,12 @@ import {
  * Choose the appropriate hook based on your integration needs and complexity requirements.
  */
 
+// Define value change params type to fix type errors
+interface ValueChangeParams<T> {
+  oldValue: T;
+  newValue: T;
+}
+
 /**
  * A hook that creates value change commands with minimal boilerplate
  *
@@ -34,37 +37,40 @@ export function useTrackableState<T>(
   commandType: string,
   setValue: (value: T) => void
 ): (newValue: T, oldValue: T, description?: string) => void {
-  const { execute } = useHistoryStateContext();
+  const { execute, registerCommand, hasCommand } = useHistoryStateContext();
+  const { commandRegistry } = useHistoryStateContext();
   const isRegistered = useRef(false);
 
-  // Register the StateChange type once
+  // Register the value change command once
   useEffect(() => {
-    if (!isRegistered.current) {
-      registerValueChangeCommand<T>(commandType, setValue);
+    if (!isRegistered.current && !hasCommand(commandType)) {
+      registerCommand<ValueChangeParams<T>>(
+        commandType,
+        params => setValue(params.newValue),
+        params => setValue(params.oldValue)
+      );
       isRegistered.current = true;
     }
-  }, [commandType, setValue]);
+  }, [commandType, setValue, registerCommand, hasCommand]);
 
   // Return a function that creates and executes the StateChange
   return useCallback(
     (newValue: T, oldValue: T, description?: string) => {
-      const StateChange = createValueChangeCommand(
+      const stateChange = createValueChangeCommand(
         commandType,
         oldValue,
         newValue,
-        description ||
-          `Change value from ${String(oldValue)} to ${String(newValue)}`
+        description,
+        commandRegistry
       );
-
-      execute(StateChange);
+      execute(stateChange);
     },
-    [commandType, execute]
+    [commandType, execute, commandRegistry]
   );
 }
 
 /**
- * A simpler version of useTrackableState for use with React's useState
- * Automatically manages state and creates undoable commands
+ * A simpler version of useTrackableState that internally manages state
  *
  * @param commandType Unique identifier for this StateChange type
  * @param initialValue Initial value for the state
@@ -75,43 +81,41 @@ export function useHistoryState<T>(
   initialValue: T
 ): [T, (newValue: T, description?: string) => void, () => void] {
   const [value, setValueDirect] = React.useState<T>(initialValue);
-  const { execute } = useHistoryStateContext();
+  const { execute, registerCommand, hasCommand } = useHistoryStateContext();
+  const { commandRegistry } = useHistoryStateContext();
   const isRegistered = useRef(false);
 
   // Register the StateChange type once
   useEffect(() => {
-    if (!isRegistered.current) {
-      registerValueChangeCommand<T>(commandType, setValueDirect);
+    if (!isRegistered.current && !hasCommand(commandType)) {
+      registerCommand<ValueChangeParams<T>>(
+        commandType,
+        params => setValueDirect(params.newValue),
+        params => setValueDirect(params.oldValue)
+      );
       isRegistered.current = true;
     }
-  }, [commandType]);
+  }, [commandType, registerCommand, hasCommand]);
 
   // StateChange-wrapped setter
   const setValue = useCallback(
     (newValue: T, description?: string) => {
-      const StateChange = createValueChangeCommand(
+      const stateChange = createValueChangeCommand(
         commandType,
         value,
         newValue,
-        description || `Change from ${String(value)} to ${String(newValue)}`
+        description,
+        commandRegistry
       );
-
-      execute(StateChange);
+      execute(stateChange);
     },
-    [value, commandType, execute]
+    [value, commandType, execute, commandRegistry]
   );
 
   // Reset to initial value
   const resetValue = useCallback(() => {
-    const StateChange = createValueChangeCommand(
-      commandType,
-      value,
-      initialValue,
-      `Reset to initial value: ${String(initialValue)}`
-    );
-
-    execute(StateChange);
-  }, [value, initialValue, commandType, execute]);
+    setValue(initialValue, `Reset to initial value: ${String(initialValue)}`);
+  }, [setValue, initialValue]);
 
   return [value, setValue, resetValue];
 }

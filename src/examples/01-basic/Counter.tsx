@@ -19,10 +19,16 @@ import {
 } from "../../StateHistory";
 
 // Reusable counter logic component with undo/redo functionality
-export const Counter = ({ initialValue = 0 }: { initialValue?: number }) => {
+export const Counter = ({ 
+  initialValue = 0,
+  commandType = "counter/basic" // Default commandType for backwards compatibility
+}: { 
+  initialValue?: number;
+  commandType?: string;
+}) => {
   // useHistoryState provides a value and a setter that automatically creates commands
   const [count, setCount, resetCount] = useHistoryState<number>(
-    "counter/setValue", // StateChange type identifier
+    commandType, // Use the provided commandType
     initialValue // Initial value
   );
 
@@ -62,7 +68,7 @@ export const CounterExample = () => (
         Try changing the counter value and then using the undo/redo buttons.
       </p>
     </div>
-    <Counter />
+    <Counter commandType="counter/basic" />
     <HistoryControls />
   </StateHistoryProvider>
 );

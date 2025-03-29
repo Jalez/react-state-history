@@ -10,7 +10,6 @@ export {
 export {
   commandHistoryReducer,
   initialState,
-  placeholderFunction,
 } from './context/StateHistoryReducer';
 
 // Export simplified hooks
@@ -22,13 +21,18 @@ export {
   createCommand,
   generateCommandId,
   analyzeCommandString,
-  createRegisteredCommand,
-  registerValueChangeCommand,
   createValueChangeCommand,
+  // New context-aware hooks
+  useRegisterValueChangeCommand,
+  // Legacy functions
+  registerValueChangeCommand,
 } from './utils/stateChangeUtils';
 
 // Export StateChange registry
 export {
+  // New context-aware hooks
+  useRegisterCommand,
+  // Legacy functions with deprecation warnings
   registerCommand,
   getCommand,
   hasCommand,

@@ -40,10 +40,13 @@ export function serializeCommand(cmd: StateChange): SerializableStateChange | Re
 /**
  * Deserializes a StateChange from localStorage format
  */
-export function deserializeCommand(serialized: SerializableStateChange | Record<string, unknown>): StateChange {
+export function deserializeCommand(
+  serialized: SerializableStateChange | Record<string, unknown>,
+  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+): StateChange {
   // If the serialized StateChange has commandName and params, use registry deserialization
   if ('commandName' in serialized && 'params' in serialized) {
-    return hydrateCommand(serialized as SerializableStateChange);
+    return hydrateCommand(serialized as SerializableStateChange, contextRegistry);
   }
   
   // Fall back to legacy deserialization for old commands
@@ -86,6 +89,8 @@ export function saveStateToStorage(
   maxStackSize: number,
   isPersistent: boolean
 ): void {
+  if (!isPersistent) return;
+  
   try {
     const stateToSave = {
       undoStack: undoStack.map(serializeCommand),
@@ -95,11 +100,7 @@ export function saveStateToStorage(
     };
     
     localStorage.setItem(storageKey, JSON.stringify(stateToSave));
-    console.log('State saved to localStorage:', {
-      key: storageKey,
-      undoStackSize: undoStack.length,
-      redoStackSize: redoStack.length
-    });
+    console.log(`State saved to localStorage (key: ${storageKey}, undo: ${undoStack.length}, redo: ${redoStack.length})`);
   } catch (error) {
     console.error("Error saving persistent state:", error);
   }
@@ -108,31 +109,27 @@ export function saveStateToStorage(
 /**
  * Loads the StateChange history state from localStorage
  */
-export function loadStateFromStorage(storageKey: string): Partial<StateHistory> | null {
+export function loadStateFromStorage(
+  storageKey: string,
+  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+): Partial<StateHistory> | null {
   try {
     const savedState = localStorage.getItem(storageKey);
     if (!savedState) return null;
-    console.log('Loading state from localStorage:', storageKey);
+    
     const parsedState = JSON.parse(savedState) as SerializedState;
     
-    // Create a new state object that matches StateHistory
-    const restoredState: Partial<StateHistory> = {
+    // Create a restored state with hydrated commands
+    return {
+      undoStack: Array.isArray(parsedState.undoStack) ? 
+        parsedState.undoStack.map(cmd => deserializeCommand(cmd, contextRegistry)) : [],
+      redoStack: Array.isArray(parsedState.redoStack) ? 
+        parsedState.redoStack.map(cmd => deserializeCommand(cmd, contextRegistry)) : [],
       maxStackSize: parsedState.maxStackSize,
       isPersistent: parsedState.isPersistent,
+      canUndo: Array.isArray(parsedState.undoStack) && parsedState.undoStack.length > 0,
+      canRedo: Array.isArray(parsedState.redoStack) && parsedState.redoStack.length > 0
     };
-    
-    // Re-hydrate the StateChange stacks with proper functions
-    if (parsedState.undoStack) {
-      restoredState.undoStack = parsedState.undoStack.map(deserializeCommand);
-      restoredState.canUndo = restoredState.undoStack.length > 0;
-    }
-    
-    if (parsedState.redoStack) {
-      restoredState.redoStack = parsedState.redoStack.map(deserializeCommand);
-      restoredState.canRedo = restoredState.redoStack.length > 0;
-    }
-    
-    return restoredState;
   } catch (error) {
     console.error("Error loading persistent state:", error);
     return null;
@@ -140,9 +137,12 @@ export function loadStateFromStorage(storageKey: string): Partial<StateHistory> 
 }
 
 /**
- * Removes the StateChange history state from localStorage
+ * Removes state from localStorage
  */
 export function clearStoredState(storageKey: string): void {
-  localStorage.removeItem(storageKey);
-  console.log('Cleared state from localStorage:', storageKey);
+  try {
+    localStorage.removeItem(storageKey);
+  } catch (error) {
+    console.error("Error clearing persistent state:", error);
+  }
 }

@@ -1,6 +1,8 @@
 /** @format */
 import { StateChange } from '../types';
-import { createRegistryCommand, registerCommand } from './stateChangeRegistry';
+import { createRegistryCommand, registerCommand as globalRegisterCommand } from './stateChangeRegistry';
+import { useHistoryStateContext } from '../context/StateHistoryContext';
+import { useEffect, useRef } from 'react';
 
 /**
  * Generate a unique ID for commands
@@ -69,30 +71,73 @@ export function analyzeCommandString(cmdString: string): {
 }
 
 /**
- * Creates a registry-based StateChange
+ * Hook to register a value change StateChange
  */
-export function createRegisteredCommand<T>(
-  commandName: string, 
-  params: T, 
-  description?: string
-): StateChange<T> {
-  return createRegistryCommand(
-    commandName,
-    params,
-    generateCommandId(),
-    description
-  );
+export function useRegisterValueChangeCommand<T>(
+  commandType: string, 
+  applyChange: (value: T) => void
+): void {
+  const { registerCommand, hasCommand } = useHistoryStateContext();
+  const isRegistered = useRef(false);
+  
+  useEffect(() => {
+    // Only register if this command type isn't already registered in this context
+    // and we haven't registered it yet in this component instance
+    if (!isRegistered.current && !hasCommand(commandType)) {
+      registerCommand(
+        commandType,
+        // Execute function sets to new value
+        (params: { oldValue: T, newValue: T }) => {
+          applyChange(params.newValue);
+        },
+        // Undo function reverts to old value
+        (params: { oldValue: T, newValue: T }) => {
+          applyChange(params.oldValue);
+        }
+      );
+      isRegistered.current = true;
+    }
+  }, [commandType, registerCommand, applyChange, hasCommand]);
+  
+  // Listen for custom events for shared state (components with the same command type)
+  useEffect(() => {
+    // Create a custom event type for this specific command type
+    const eventType = `value-change-${commandType}`;
+    
+    const handleValueChange = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        const newValue = event.detail.value;
+        applyChange(newValue as T);
+      }
+    };
+    
+    // Add event listener
+    document.addEventListener(eventType, handleValueChange);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener(eventType, handleValueChange);
+    };
+  }, [commandType, applyChange]);
 }
 
 /**
  * Registers a value change StateChange
  * This is a common pattern for handling state changes
+ * 
+ * @deprecated Use useRegisterValueChangeCommand hook instead which uses context-specific registry
  */
 export function registerValueChangeCommand<T>(
   commandType: string, 
   applyChange: (value: T) => void
 ): void {
-  registerCommand(
+  console.warn(
+    `[Deprecated] registerValueChangeCommand is using global registry which can cause conflicts. ` +
+    `Please use useRegisterValueChangeCommand hook inside a component to use context-specific registry.`
+  );
+  
+  // Use imported globalRegisterCommand instead of require
+  globalRegisterCommand(
     commandType,
     // Execute function sets to new value
     (params: { oldValue: T, newValue: T }) => {
@@ -112,11 +157,16 @@ export function createValueChangeCommand<T>(
   commandType: string,
   oldValue: T,
   newValue: T,
-  description?: string
+  description?: string,
+  contextRegistry?: Record<string, { execute: Function, undo: Function }>
 ): StateChange {
-  return createRegisteredCommand(
+  const defaultDescription = `Change from ${String(oldValue)} to ${String(newValue)}`;
+  
+  return createRegistryCommand(
     commandType,
     { oldValue, newValue },
-    description || `Change from ${oldValue} to ${newValue}`
+    generateCommandId(),
+    description || defaultDescription,
+    contextRegistry
   );
 }

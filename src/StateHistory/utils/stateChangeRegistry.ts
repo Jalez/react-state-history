@@ -1,25 +1,7 @@
 /** @format */
 import { StateChange } from '../types';
-
-/**
- * Represents a registered StateChange function
- */
-export interface CommandFunction<T = unknown> {
-  /**
-   * Execute the StateChange with given parameters
-   */
-  execute: (params: T) => void;
-  
-  /**
-   * Undo the StateChange with given parameters
-   */
-  undo: (params: T) => void;
-}
-
-/**
- * Registry for storing StateChange functions by name
- */
-export type CommandRegistry = Record<string, CommandFunction<unknown>>;
+import { useHistoryStateContext } from '../context/StateHistoryContext';
+import { useEffect } from 'react';
 
 /**
  * Serializable version of a StateChange
@@ -46,56 +28,134 @@ export interface SerializableStateChange<T = unknown> {
   description?: string;
 }
 
-// The global registry of StateChange functions
-const globalRegistry: CommandRegistry = {};
+/**
+ * Type definition for the CommandFunction interface
+ * Re-exporting from types for backward compatibility
+ */
+export type { CommandFunction } from '../types';
 
 /**
- * Register a StateChange function with the registry
+ * Type definition for the CommandRegistry interface
+ * Re-exporting from types for backward compatibility
+ */
+export type { CommandRegistry } from '../types';
+
+/**
+ * Hook to register a StateChange function with the context registry
+ */
+export function useRegisterCommand<T>(
+  name: string, 
+  executeFn: (params: T) => void,
+  undoFn: (params: T) => void
+): void {
+  const { registerCommand, unregisterCommand } = useHistoryStateContext();
+  
+  // Register command on mount and clean up on unmount
+  useEffect(() => {
+    registerCommand(name, executeFn, undoFn);
+    
+    // Return cleanup function to unregister the command when the component unmounts
+    return () => {
+      unregisterCommand(name);
+    };
+  }, [name, registerCommand, unregisterCommand, executeFn, undoFn]);
+}
+
+/**
+ * Register a StateChange function with the context registry
+ * @deprecated Use useRegisterCommand hook instead
  */
 export function registerCommand<T>(
   name: string, 
   executeFn: (params: T) => void,
   undoFn: (params: T) => void
 ): void {
-  if (globalRegistry[name]) {
-    console.warn(`StateChange "${name}" is already registered. Overwriting.`);
-  }
+  console.warn(
+    `[Deprecated] registerCommand is using global registry which can cause conflicts. ` +
+    `Please use useRegisterCommand hook inside a component to use context-specific registry.`
+  );
   
-  globalRegistry[name] = {
+  // This global function is kept for backward compatibility but will warn
+  // Users should migrate to the hook-based version
+  const ctx = getGlobalRegistryFallback();
+  ctx[name] = {
     execute: executeFn as (params: unknown) => void,
     undo: undoFn as (params: unknown) => void
   };
 }
 
+// Legacy global registry fallback for backward compatibility
+let globalRegistryFallback: Record<string, { execute: Function, undo: Function }> = {};
+
 /**
- * Get a StateChange function from the registry
+ * For backward compatibility only - do not use in new code
+ * @deprecated
  */
-export function getCommand<T>(name: string): CommandFunction<T> | undefined {
-  return globalRegistry[name] as CommandFunction<T> | undefined;
+function getGlobalRegistryFallback() {
+  return globalRegistryFallback;
 }
 
 /**
- * Check if a StateChange exists in the registry
+ * Get a StateChange function from the legacy global registry
+ * @deprecated Use useHistoryStateContext().getCommand instead
+ */
+export function getCommand<T>(name: string): { execute: (params: T) => void, undo: (params: T) => void } | undefined {
+  console.warn(
+    `[Deprecated] getCommand is using global registry which can cause conflicts. ` +
+    `Please use useHistoryStateContext().getCommand instead to use context-specific registry.`
+  );
+  return globalRegistryFallback[name] as { execute: (params: T) => void, undo: (params: T) => void } | undefined;
+}
+
+/**
+ * Check if a StateChange exists in the legacy global registry
+ * @deprecated Use useHistoryStateContext().hasCommand instead
  */
 export function hasCommand(name: string): boolean {
-  return !!globalRegistry[name];
+  console.warn(
+    `[Deprecated] hasCommand is using global registry which can cause conflicts. ` +
+    `Please use useHistoryStateContext().hasCommand instead to use context-specific registry.`
+  );
+  return !!globalRegistryFallback[name];
 }
 
 /**
- * Create a StateChange object from a SerializableStateChange and the registry
+ * Create a StateChange object from a SerializableStateChange and the context registry
  */
-export function hydrateCommand<T>(SerializableStateChange: SerializableStateChange<T>): StateChange<T> {
-  const { id, commandName, params, description } = SerializableStateChange;
-  const commandFn = getCommand<T>(commandName);
+export function hydrateCommand<T>(
+  serializableStateChange: SerializableStateChange<T>,
+  contextRegistry?: Record<string, { execute: Function, undo: Function }>
+): StateChange<T> {
+  const { id, commandName, params, description } = serializableStateChange;
+  
+  // Make sure commandName is valid
+  if (!commandName) {
+    return createErrorStateChange(id || `invalid-${Date.now()}`, description, params);
+  }
+  
+  // Try to get command from context registry first, fall back to global if necessary
+  const registry = contextRegistry || getGlobalRegistryFallback();
+  const commandFn = registry[commandName];
   
   if (!commandFn) {
-    console.error(`StateChange function "${commandName}" not found in registry`);
-    // Return a placeholder StateChange that logs errors when executed
+    // Return a StateChange that will try to resolve the command again when executed
     return {
       id,
-      description: description || `Unknown StateChange: ${commandName}`,
-      execute: () => console.error(`Cannot execute unknown StateChange: ${commandName}`),
-      undo: () => console.error(`Cannot undo unknown StateChange: ${commandName}`),
+      description: description || `Pending StateChange: ${commandName}`,
+      execute: () => {
+        const latestRegistry = contextRegistry || getGlobalRegistryFallback();
+        if (latestRegistry[commandName]) {
+          return latestRegistry[commandName].execute(params);
+        }
+        console.error(`Cannot execute unknown StateChange: ${commandName}`);
+      },
+      undo: () => {
+        const latestRegistry = contextRegistry || getGlobalRegistryFallback();
+        if (latestRegistry[commandName]) {
+          return latestRegistry[commandName].undo(params);
+        }
+        console.error(`Cannot undo unknown StateChange: ${commandName}`);
+      },
       commandName,
       params
     };
@@ -112,41 +172,66 @@ export function hydrateCommand<T>(SerializableStateChange: SerializableStateChan
 }
 
 /**
- * Convert a StateChange object to a SerializableStateChange
+ * Helper to create error/fallback StateChange objects
  */
-export function dehydrateCommand<T>(StateChange: StateChange<T>): SerializableStateChange<T> {
-  if (!StateChange.commandName || StateChange.params === undefined) {
-    throw new Error('StateChange is not serializable: missing commandName or params');
-  }
-  
+function createErrorStateChange<T>(id: string, description?: string, params?: T): StateChange<T> {
   return {
-    id: StateChange.id || '',
-    commandName: StateChange.commandName,
-    params: StateChange.params,
-    description: StateChange.description
+    id,
+    description: description || 'Invalid StateChange',
+    execute: () => console.error(`Cannot execute invalid StateChange`),
+    undo: () => console.error(`Cannot undo invalid StateChange`),
+    params
   };
 }
 
 /**
- * Create a StateChange using the registry
+ * Convert a StateChange to a serializable format
+ */
+export function dehydrateCommand<T>(stateChange: StateChange<T>): SerializableStateChange<T> {
+  if (!stateChange.commandName) {
+    throw new Error('Cannot dehydrate a StateChange without a commandName');
+  }
+  
+  return {
+    id: stateChange.id || `cmd-${Date.now()}`,
+    commandName: stateChange.commandName,
+    params: stateChange.params as T,
+    description: stateChange.description
+  };
+}
+
+/**
+ * Creates a StateChange based on a registered command
  */
 export function createRegistryCommand<T>(
   commandName: string,
   params: T,
-  id?: string,
-  description?: string
+  id: string,
+  description?: string,
+  contextRegistry?: Record<string, { execute: Function, undo: Function }>
 ): StateChange<T> {
-  const commandFn = getCommand<T>(commandName);
+  // Use either the provided registry or fall back to global registry
+  const registry = contextRegistry || getGlobalRegistryFallback();
+  const command = registry[commandName];
   
-  if (!commandFn) {
-    throw new Error(`StateChange function "${commandName}" not found in registry`);
+  if (!command) {
+    // If the command doesn't exist, create a placeholder that logs errors
+    console.error(`Command "${commandName}" is not registered`);
+    return {
+      id,
+      description: description || `Unknown Command: ${commandName}`,
+      execute: () => console.error(`Cannot execute unknown command: ${commandName}`),
+      undo: () => console.error(`Cannot undo unknown command: ${commandName}`),
+      commandName,
+      params,
+    };
   }
   
   return {
-    id: id || `cmd-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    description: description || `StateChange: ${commandName}`,
-    execute: () => commandFn.execute(params),
-    undo: () => commandFn.undo(params),
+    id,
+    description: description || `Command: ${commandName}`,
+    execute: () => command.execute(params),
+    undo: () => command.undo(params),
     commandName,
     params
   };

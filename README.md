@@ -6,6 +6,13 @@
 
 `react-state-history` provides a flexible and robust system for managing state history (undo/redo) in React applications using TypeScript. It leverages the Command Pattern and offers features like state persistence, composite commands, and a command registry for serializable actions.
 
+## What's New in v0.1.1
+
+- **Code Simplification**: The core logic has been streamlined for better maintainability without removing any functionality.
+- **Improved Error Handling**: Enhanced error detection and recovery in command serialization and hydration.
+- **Better Type Safety**: Strengthened TypeScript type definitions throughout the codebase.
+- **Fixed Issues**: Addressed edge cases in command reconnection and serialization.
+
 ## What is the Command Pattern?
 
 The Command Pattern is a behavioral design pattern that encapsulates a request as an object, allowing for parameterization of clients with different requests, queuing of requests, and logging of the operations. In `react-state-history`, this pattern is central to how undo/redo functionality works:
@@ -22,6 +29,7 @@ This approach separates the logic that modifies state from the components that t
 
 - **Command Pattern:** Encapsulates state changes as `StateChange` objects with `execute` and `undo` methods.
 - **React Context API:** Uses `StateHistoryProvider` and `useHistoryStateContext` for easy integration.
+- **Stack Size Management:** Configurable history stack size limit (default: 50) to prevent memory issues.
 - **Flexible Hooks:**
   - `useHistoryState`: A simple hook, similar to `useState`, that automatically handles state and command creation for basic scenarios.
   - `useTrackableState`: A lower-level hook to integrate with existing state management solutions, requiring manual tracking of previous values.
@@ -34,7 +42,7 @@ This approach separates the logic that modifies state from the components that t
 ## Core Concepts
 
 1.  **`StateChange` Object:** The fundamental unit representing an action. It must have `execute` and `undo` functions. For persistence, it should also include `commandName` and `params`.
-2.  **`StateHistoryProvider`:** Wraps your application (or relevant part) to provide the undo/redo context. Manages the undo/redo stacks and persistence.
+2.  **`StateHistoryProvider`:** Wraps your application (or relevant part) to provide the undo/redo context. Manages the undo/redo stacks, persistence, and stack size limits.
 3.  **`useHistoryStateContext`:** Hook to access the context's state (`canUndo`, `canRedo`, `undoStack`, `redoStack`, `isPersistent`) and actions (`execute`, `undo`, `redo`, `clear`, `togglePersistence`, `setMaxStackSize`).
 4.  **StateChange Registry:** A global registry (`registerCommand`, `getCommand`) where you define _how_ to execute and undo specific types of commands based on their `commandName` and `params`. This is crucial for rehydrating commands from persistent storage.
 
@@ -340,6 +348,16 @@ src/StateHistory/
 ## Best Practices
 
 - **Unique Command Names:** Use distinct `commandType` strings when using `useHistoryState`, `useTrackableState`, or registering commands, especially if using persistence. Prefixing with the feature area (e.g., `'counter/increment'`, `'userProfile/updateName'`) is recommended.
+  - ⚠️ **Important:** When reusing components that use `useHistoryState` or `useTrackableState`, make sure to pass unique `commandType` values to each instance. Using the same `commandType` for multiple instances will cause them to share state and overwrite each other's history.
+  ```tsx
+  // DON'T - Both counters will share state and overwrite each other's history
+  <Counter />
+  <Counter />
+
+  // DO - Each counter has its own unique state history
+  <Counter commandType="counter/first" />
+  <Counter commandType="counter/second" />
+  ```
 - **Automatic Registration:** Both `useHistoryState` and `useTrackableState` automatically register command types internally, so manual registration is only needed for custom commands that aren't created with these hooks.
 - **Immutability:** Ensure your `execute` and `undo` functions handle state immutably, especially when dealing with objects or arrays.
 - **Descriptions:** Provide clear `description` strings when creating commands for better debugging and potential UI display.

@@ -5,6 +5,7 @@ import { TodoListExample } from "./examples/02-composite/TodoList";
 import { ColorPickerExample } from "./examples/03-custom-ui/ColorPicker";
 import { PersistentCounterExample } from "./examples/04-persistence/PersistentCounter";
 import { PersistentToggleCounter } from "./examples/05-persistence-toggle/PersistentToggleCounter";
+import { DuplicateCommandTypesExample } from "./examples/06-duplicate-command-types/DuplicateCommandTypes";
 
 function App() {
   // Refs for section navigation
@@ -13,6 +14,7 @@ function App() {
   const customUiRef = useRef<HTMLDivElement>(null);
   const persistenceRef = useRef<HTMLDivElement>(null);
   const registryRef = useRef<HTMLDivElement>(null);
+  const duplicateTypesRef = useRef<HTMLDivElement>(null);
 
   // Scroll to section - fix the type to match React.useRef's return type
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -26,7 +28,7 @@ function App() {
     <div className="app-container">
       <header>
         <h1>
-          undo-
+          react-
           <span
             style={{
               textShadow: "1px 1px 2px white, -1px -1px 2px white",
@@ -34,9 +36,9 @@ function App() {
               color: "black ",
             }}
           >
-            redo
+            state
           </span>
-          -ts
+          -history
         </h1>
         <p>
         A General way to manage state history in your application. 
@@ -57,6 +59,9 @@ function App() {
           </button>
           <button onClick={() => scrollToSection(registryRef)}>
             5. StateChange Registry
+          </button>
+          <button onClick={() => scrollToSection(duplicateTypesRef)}>
+            6. Command Type Uniqueness
           </button>
         </div>
       </header>
@@ -112,6 +117,18 @@ function App() {
         
         <div className="section" id="registry" ref={registryRef}>
           <PersistentToggleCounter key="registry-example" />
+          <div className="section-divider">
+            <button
+              className="back-to-top"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Back to Top
+            </button>
+          </div>
+        </div>
+        
+        <div className="section" id="duplicate-types" ref={duplicateTypesRef}>
+          <DuplicateCommandTypesExample key="duplicate-types-example" />
           <div className="section-divider">
             <button
               className="back-to-top"
