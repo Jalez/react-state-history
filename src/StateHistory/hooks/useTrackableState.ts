@@ -56,12 +56,17 @@ export function useTrackableState<T>(
   // Return a function that creates and executes the StateChange
   return useCallback(
     (newValue: T, oldValue: T, description?: string) => {
-      const stateChange = createValueChangeCommand(
+      if (!commandRegistry) {
+        throw new Error(
+          'Command registry is not available. Ensure you are using this hook within a StateHistoryProvider.'
+        );
+      }
+      const stateChange = createValueChangeCommand<T>(
         commandType,
         oldValue,
         newValue,
         description,
-        commandRegistry
+        commandRegistry as unknown as Record<string, { execute: () => void; undo: () => void }>
       );
       execute(stateChange);
     },
@@ -100,12 +105,12 @@ export function useHistoryState<T>(
   // StateChange-wrapped setter
   const setValue = useCallback(
     (newValue: T, description?: string) => {
-      const stateChange = createValueChangeCommand(
+      const stateChange = createValueChangeCommand<T>(
         commandType,
         value,
         newValue,
         description,
-        commandRegistry
+        commandRegistry as unknown as Record<string, { execute: () => void; undo: () => void }>
       );
       execute(stateChange);
     },
