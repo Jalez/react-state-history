@@ -9,7 +9,7 @@
 
 # Source files (since we publish the dist folder)
 src/
-!src/UndoRedo/
+!src/StateHistory/
 
 # Example files
 src/examples/
