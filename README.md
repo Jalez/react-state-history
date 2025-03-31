@@ -6,6 +6,10 @@
 
 `react-state-history` provides a flexible and robust system for managing state history (undo/redo) in React applications using TypeScript. It leverages the Command Pattern and offers features like state persistence, composite commands, and a command registry for serializable actions.
 
+## Live examples:
+
+- **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
+
 ## What's New in v0.1.2
 
 - **Code Simplification**: The core logic has been streamlined for better maintainability without removing any functionality.
