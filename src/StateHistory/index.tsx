@@ -4,16 +4,17 @@
 export {
   StateHistoryProvider,
   useHistoryStateContext,
-} from './context/StateHistoryContext';
+} from "./context/StateHistoryContext";
 
 // Export reducer and related constants
 export {
   commandHistoryReducer,
   initialState,
-} from './context/StateHistoryReducer';
+} from "./context/StateHistoryReducer";
 
 // Export simplified hooks
-export { useTrackableState, useHistoryState } from './hooks/useTrackableState';
+export { useTrackableState, useHistoryState } from "./hooks/useTrackableState";
+export { useLatestState } from "./hooks/useLatestState";
 
 // Export StateChange utilities
 export {
@@ -26,7 +27,7 @@ export {
   useRegisterValueChangeCommand,
   // Legacy functions
   registerValueChangeCommand,
-} from './utils/stateChangeUtils';
+} from "./utils/stateChangeUtils";
 
 // Export StateChange registry
 export {
@@ -39,13 +40,13 @@ export {
   hydrateCommand,
   dehydrateCommand,
   createRegistryCommand,
-} from './utils/stateChangeRegistry';
+} from "./utils/stateChangeRegistry";
 
 export type {
   CommandFunction,
   CommandRegistry,
   SerializableStateChange,
-} from './utils/stateChangeRegistry';
+} from "./utils/stateChangeRegistry";
 
 // Export persistence utilities
 export {
@@ -55,17 +56,17 @@ export {
   saveStateToStorage,
   loadStateFromStorage,
   clearStoredState,
-} from './utils/persistenceUtils';
+} from "./utils/persistenceUtils";
 
 // Export render utilities
-export { useDeferredActions } from './utils/renderUtils';
+export { useDeferredActions } from "./utils/renderUtils";
 
 // Export components
-export { default as HistoryControls } from './components/HistoryControls';
+export { default as HistoryControls } from "./components/HistoryControls";
 export type {
   HistoryControlsProps,
   HistoryButtonProps,
-} from './components/HistoryControls';
+} from "./components/HistoryControls";
 
 // Types
 export type {
@@ -75,4 +76,4 @@ export type {
   StateHistoryAction,
   StateHistoryContextType,
   StateHistoryProviderProps,
-} from './types';
+} from "./types";

@@ -6,12 +6,14 @@
 
 `react-state-history` provides a flexible and robust system for managing state history (undo/redo) in React applications using TypeScript. It leverages the Command Pattern and offers features like state persistence, composite commands, and a command registry for serializable actions.
 
-## What's New in v1.1.2
+## What's New in v0.1.2
 
 - **Code Simplification**: The core logic has been streamlined for better maintainability without removing any functionality.
 - **Improved Error Handling**: Enhanced error detection and recovery in command serialization and hydration.
 - **Better Type Safety**: Strengthened TypeScript type definitions throughout the codebase.
 - **Fixed Issues**: Addressed edge cases in command reconnection and serialization.
+- **New useLatestState Hook**: Added a specialized hook for retrieving the latest state from history.
+- **Enhanced React Flow Example**: Improved demonstration of complex third-party library integration.
 
 ## What is the Command Pattern?
 
@@ -33,6 +35,7 @@ This approach separates the logic that modifies state from the components that t
 - **Flexible Hooks:**
   - `useHistoryState`: A simple hook, similar to `useState`, that automatically handles state and command creation for basic scenarios.
   - `useTrackableState`: A lower-level hook to integrate with existing state management solutions, requiring manual tracking of previous values.
+  - `useLatestState`: A specialized hook for retrieving the latest state from history, perfect for third-party library integrations.
 - **StateChange Registry:** Enables defining serializable command types for persistence.
 - **Persistence:** Optionally persists undo/redo history to `localStorage`.
 - **Composite Commands:** Group multiple actions into a single undoable/redoable step.
@@ -301,6 +304,7 @@ You can also provide custom button components or a completely custom render func
   - `useHistoryStateContext`: Accesses the history state and actions.
   - `useHistoryState`: Manages simple state with automatic history tracking.
   - `useTrackableState`: Integrates history tracking with existing state setters.
+  - `useLatestState`: Retrieves the latest state for a specific command type from the undo stack, ideal for third-party integrations.
 - **Components:**
   - `HistoryControls`: Renders undo/redo/clear UI controls.
 - **Command Creation:**
@@ -348,7 +352,9 @@ src/StateHistory/
 ## Best Practices
 
 - **Unique Command Names:** Use distinct `commandType` strings when using `useHistoryState`, `useTrackableState`, or registering commands, especially if using persistence. Prefixing with the feature area (e.g., `'counter/increment'`, `'userProfile/updateName'`) is recommended.
+
   - ⚠️ **Important:** When reusing components that use `useHistoryState` or `useTrackableState`, make sure to pass unique `commandType` values to each instance. Using the same `commandType` for multiple instances will cause them to share state and overwrite each other's history.
+
   ```tsx
   // DON'T - Both counters will share state and overwrite each other's history
   <Counter />
@@ -358,6 +364,7 @@ src/StateHistory/
   <Counter commandType="counter/first" />
   <Counter commandType="counter/second" />
   ```
+
 - **Automatic Registration:** Both `useHistoryState` and `useTrackableState` automatically register command types internally, so manual registration is only needed for custom commands that aren't created with these hooks.
 - **Immutability:** Ensure your `execute` and `undo` functions handle state immutably, especially when dealing with objects or arrays.
 - **Descriptions:** Provide clear `description` strings when creating commands for better debugging and potential UI display.

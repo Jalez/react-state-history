@@ -27,12 +27,13 @@ describe("HistoryControls", () => {
     undoStack: [],
     redoStack: [],
     maxStackSize: 50,
+    initialStateLoaded: true, // Added the missing property
     // Add command registry related properties
     registerCommand: vi.fn(),
     unregisterCommand: vi.fn(),
     getCommand: vi.fn(),
     hasCommand: vi.fn(),
-    commandRegistry: {}
+    commandRegistry: {},
   };
 
   // Helper to set up the mock context for each test

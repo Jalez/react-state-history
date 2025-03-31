@@ -49,7 +49,7 @@ export interface CommandFunction<T = unknown> {
    * Execute the StateChange with given parameters
    */
   execute: (params: T) => void;
-  
+
   /**
    * Undo the StateChange with given parameters
    */
@@ -94,7 +94,7 @@ export interface StateHistory {
    * Whether the StateChange history should persist between page reloads
    */
   isPersistent: boolean;
-  
+
   /**
    * Per-context command registry to isolate command types between different provider instances
    */
@@ -125,6 +125,11 @@ export type StateHistoryAction =
  */
 export interface StateHistoryContextType extends StateHistory {
   /**
+   * Whether the initial state has been loaded from localStorage
+   * This is useful for components that need to wait for the initial state to be loaded
+   */
+  initialStateLoaded: boolean;
+  /**
    * Execute a StateChange and add it to the undo stack
    */
   execute: (StateChange: StateChange) => void;
@@ -153,22 +158,26 @@ export interface StateHistoryContextType extends StateHistory {
    * Toggle StateChange persistence
    */
   togglePersistence: () => void;
-  
+
   /**
    * Register a command in the context-specific registry
    */
-  registerCommand: <T>(name: string, executeFn: (params: T) => void, undoFn: (params: T) => void) => void;
-  
+  registerCommand: <T>(
+    name: string,
+    executeFn: (params: T) => void,
+    undoFn: (params: T) => void
+  ) => void;
+
   /**
    * Unregister a command from the context-specific registry
    */
   unregisterCommand: (name: string) => void;
-  
+
   /**
    * Get a command from the context-specific registry
    */
   getCommand: <T>(name: string) => CommandFunction<T> | undefined;
-  
+
   /**
    * Check if a command exists in the context-specific registry
    */
