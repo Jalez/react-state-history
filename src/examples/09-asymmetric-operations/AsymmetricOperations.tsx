@@ -7,65 +7,93 @@ import {
 } from "../../StateHistory";
 
 /**
- * This example demonstrates the asymmetric operations feature of useTrackableState.
- * It shows how to use different functions for execute vs undo operations, which is
- * useful for non-idempotent operations like adding/removing items from a collection.
+ * This example demonstrates the asymmetric operations feature of useTrackableState
+ * with different parameter types, showing how to:
+ * 1. Use different functions for execute vs undo operations
+ * 2. Use different parameter types for add (full object) vs remove (just ID)
  */
+interface Item {
+  id: string;
+  name: string;
+  createdAt: Date;
+}
+
 const AsymmetricOperations: React.FC = () => {
   // UI state to force re-render
   const [, forceUpdate] = useState({});
 
   // Use a ref to store the collection to avoid re-renders on every change
-  const itemsRef = useRef<string[]>([]);
+  const itemsRef = useRef<Item[]>([]);
 
   // Action functions for adding and removing items
-  const addItem = (item: string) => {
+  // Add takes a full Item object
+  const addItem = (item: Item) => {
     itemsRef.current = [...itemsRef.current, item];
     forceUpdate({}); // Force re-render to show changes
   };
 
-  const removeItem = (item: string) => {
-    itemsRef.current = itemsRef.current.filter((i) => i !== item);
+  // Remove takes just the ID
+  const removeItemById = (id: string) => {
+    itemsRef.current = itemsRef.current.filter((item) => item.id !== id);
     forceUpdate({}); // Force re-render to show changes
   };
 
-  // Create trackers with asymmetric operations
-  // For adding: execute uses addItem, undo uses removeItem
-  const trackItemAddition = useTrackableState<string>(
+  // Create trackers with asymmetric operations AND different parameter types
+  // For adding:
+  // - execute uses addItem (takes full Item object)
+  // - undo uses removeItemById (takes just string ID)
+  const trackItemAddition = useTrackableState<Item, string>(
     "item-addition",
-    addItem, // For execute - adds an item
-    removeItem // For undo - removes the item
+    addItem, // Execute takes Item
+    removeItemById // Undo takes string ID
   );
 
-  // For removing: execute uses removeItem, undo uses addItem
-  const trackItemRemoval = useTrackableState<string>(
+  // For removing:
+  // - execute uses removeItemById (takes string ID)
+  // - undo uses addItem (takes full Item object)
+  const trackItemRemoval = useTrackableState<string, Item>(
     "item-removal",
-    removeItem, // For execute - removes an item
-    addItem // For undo - adds the item back
+    removeItemById, // Execute takes string ID
+    addItem // Undo takes Item
   );
 
-  // Generate a unique item ID
-  const generateItemId = () => `item-${Date.now()}`;
+  // Generate a unique item
+  const generateItem = (): Item => ({
+    id: `item-${Date.now()}`,
+    name: `Item ${itemsRef.current.length + 1}`,
+    createdAt: new Date(),
+  });
 
   // Handle adding a new item
   const handleAddItem = () => {
-    const newItem = generateItemId();
-    // Execute will use addItem, undo will use removeItem
-    trackItemAddition(newItem, newItem, `Added ${newItem}`);
+    const newItem = generateItem();
+
+    // Execute will use addItem with full object
+    // Undo will use removeItemById with just the ID
+    trackItemAddition(
+      newItem, // newValue: full Item for execute
+      newItem.id, // oldValue: just ID for undo
+      `Added ${newItem.name}`
+    );
   };
 
   // Handle removing an item
-  const handleRemoveItem = (item: string) => {
-    // Execute will use removeItem, undo will use addItem
-    trackItemRemoval(item, item, `Removed ${item}`);
+  const handleRemoveItem = (item: Item) => {
+    // Execute will use removeItemById with just the ID
+    // Undo will use addItem with the full Item
+    trackItemRemoval(
+      item.id, // newValue: just ID for execute
+      item, // oldValue: full Item for undo
+      `Removed ${item.name}`
+    );
   };
 
   return (
     <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
-      <h2>Asymmetric Operations Example</h2>
+      <h2>Asymmetric Operations with Different Parameter Types</h2>
       <p>
-        This example demonstrates how to use useTrackableState with different
-        functions for execute vs undo operations.
+        This example demonstrates useTrackableState with both different
+        functions for execute vs undo operations and different parameter types.
       </p>
 
       <div style={{ marginBottom: "20px" }}>
@@ -95,7 +123,7 @@ const AsymmetricOperations: React.FC = () => {
           <ul style={{ listStyleType: "none", padding: 0 }}>
             {itemsRef.current.map((item) => (
               <li
-                key={item}
+                key={item.id}
                 style={{
                   padding: "8px",
                   margin: "4px 0",
@@ -106,7 +134,15 @@ const AsymmetricOperations: React.FC = () => {
                   alignItems: "center",
                 }}
               >
-                <span>{item}</span>
+                <div>
+                  <strong>{item.name}</strong>
+                  <div style={{ fontSize: "0.8em", color: "#666" }}>
+                    Created: {item.createdAt.toLocaleTimeString()}
+                  </div>
+                  <div style={{ fontSize: "0.7em", color: "#999" }}>
+                    ID: {item.id}
+                  </div>
+                </div>
                 <button
                   onClick={() => handleRemoveItem(item)}
                   style={{
@@ -129,28 +165,57 @@ const AsymmetricOperations: React.FC = () => {
       <div style={{ marginTop: "20px" }}>
         <h3>How it works</h3>
         <p>
-          When adding items, we use an <strong>asymmetric</strong> approach:
+          When adding items, we use both asymmetric functions and different
+          parameter types:
         </p>
         <ul>
           <li>
-            <strong>Execute:</strong> Uses the <code>addItem</code> function
+            <strong>Execute:</strong> Uses <code>addItem(item: Item)</code> with
+            full item object
           </li>
           <li>
-            <strong>Undo:</strong> Uses the <code>removeItem</code> function
+            <strong>Undo:</strong> Uses <code>removeItemById(id: string)</code>{" "}
+            with just the ID
           </li>
         </ul>
-        <p>Similarly, when removing items we use the reverse:</p>
+        <pre
+          style={{
+            backgroundColor: "#f0f0f0",
+            padding: "10px",
+            overflow: "auto",
+          }}
+        >
+          {`// Different parameter types for execute vs undo
+const trackItemAddition = useTrackableState<Item, string>(
+  "item-addition",
+  addItem,         // Execute takes Item
+  removeItemById   // Undo takes string ID
+);
+
+// Usage: pass different types for newValue and oldValue
+trackItemAddition(
+  newItem,       // newValue: full Item for execute
+  newItem.id,    // oldValue: just ID for undo
+  "Added item"
+);`}
+        </pre>
+        <p>
+          Similarly, when removing items we use the reverse parameter types:
+        </p>
         <ul>
           <li>
-            <strong>Execute:</strong> Uses the <code>removeItem</code> function
+            <strong>Execute:</strong> Uses{" "}
+            <code>removeItemById(id: string)</code> with just the ID
           </li>
           <li>
-            <strong>Undo:</strong> Uses the <code>addItem</code> function
+            <strong>Undo:</strong> Uses <code>addItem(item: Item)</code> with
+            full item object
           </li>
         </ul>
         <p>
-          This makes undo/redo work naturally with collection operations, where
-          using the same function for both operations wouldn't work.
+          This minimizes the amount of data we need to store for undo/redo
+          operations while still maintaining all the information we need to
+          restore state.
         </p>
       </div>
     </div>

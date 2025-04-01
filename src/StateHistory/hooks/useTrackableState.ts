@@ -11,6 +11,7 @@ import { createValueChangeCommand } from "../utils/stateChangeUtils";
  *    - Requires manual tracking of previous values
  *    - More flexible for complex state management scenarios
  *    - Supports asymmetric execute/undo operations for non-idempotent state changes
+ *    - Supports different parameter types for execute and undo operations
  *
  * 2. useHistoryState - A higher-level, all-in-one state management solution
  *    - Combines React's useState with undo/redo capability in one hook
@@ -22,8 +23,8 @@ import { createValueChangeCommand } from "../utils/stateChangeUtils";
  */
 
 // Define value change params type to fix type errors
-interface ValueChangeParams<T> {
-  oldValue: T;
+interface ValueChangeParams<T, U = T> {
+  oldValue: U;
   newValue: T;
 }
 
@@ -42,7 +43,7 @@ interface ValueChangeParams<T> {
  * trackCount(count + 1, count, 'Increment counter');
  *
  * @example
- * // Asymmetric operations (new capability)
+ * // Asymmetric operations with same parameter types
  * const itemsRef = useRef<string[]>([]);
  * const addItem = (item) => { itemsRef.current = [...itemsRef.current, item]; };
  * const removeItem = (item) => { itemsRef.current = itemsRef.current.filter(i => i !== item); };
@@ -50,23 +51,47 @@ interface ValueChangeParams<T> {
  * // Use with different execute/undo functions
  * const trackItemAddition = useTrackableState('add-item', addItem, removeItem);
  * trackItemAddition('new-item', 'new-item', 'Added new item');
+ *
+ * @example
+ * // Asymmetric operations with different parameter types
+ * const itemsRef = useRef<{id: string, name: string}[]>([]);
+ * // Add function takes full item object
+ * const addItem = (item: {id: string, name: string}) => {
+ *   itemsRef.current = [...itemsRef.current, item];
+ * };
+ * // Remove function only needs the ID
+ * const removeItem = (id: string) => {
+ *   itemsRef.current = itemsRef.current.filter(i => i.id !== id);
+ * };
+ *
+ * // Use with different parameter types for execute and undo
+ * const trackItem = useTrackableState<{id: string, name: string}, string>(
+ *   'add-item',
+ *   addItem,
+ *   removeItem
+ * );
+ * // Add uses full item, storage uses ID for undo
+ * const newItem = {id: '123', name: 'New Item'};
+ * trackItem(newItem, newItem.id, 'Added new item');
  */
-export function useTrackableState<T>(
+export function useTrackableState<T, U = T>(
   commandType: string,
   executeSetValue: (value: T) => void,
-  undoSetValue?: (value: T) => void
-): (newValue: T, oldValue: T, description?: string) => void {
+  undoSetValue?: (value: U) => void
+): (newValue: T, oldValue: U, description?: string) => void {
   const { execute, registerCommand, hasCommand } = useHistoryStateContext();
   const { commandRegistry } = useHistoryStateContext();
   const isRegistered = useRef(false);
 
   // Default to using executeSetValue for both operations if undoSetValue is not provided
-  const finalUndoSetValue = undoSetValue || executeSetValue;
+  // This cast is safe for the default case where U = T
+  const finalUndoSetValue =
+    undoSetValue || (executeSetValue as unknown as (value: U) => void);
 
   // Register the value change command once
   useEffect(() => {
     if (!isRegistered.current && !hasCommand(commandType)) {
-      registerCommand<ValueChangeParams<T>>(
+      registerCommand<ValueChangeParams<T, U>>(
         commandType,
         (params) => executeSetValue(params.newValue),
         (params) => finalUndoSetValue(params.oldValue)
@@ -83,13 +108,15 @@ export function useTrackableState<T>(
 
   // Return a function that creates and executes the StateChange
   return useCallback(
-    (newValue: T, oldValue: T, description?: string) => {
+    (newValue: T, oldValue: U, description?: string) => {
       if (!commandRegistry) {
         throw new Error(
           "Command registry is not available. Ensure you are using this hook within a StateHistoryProvider."
         );
       }
-      const stateChange = createValueChangeCommand<T>(
+
+      // Create a value change command with potentially different types for new and old values
+      const stateChange = createValueChangeCommand<T, U>(
         commandType,
         oldValue,
         newValue,

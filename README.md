@@ -10,6 +10,11 @@
 
 - **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
 
+## What's New in v0.1.9
+
+- **Enhanced Asymmetric Operations**: Now supports different parameter types for execute vs undo operations, allowing for more efficient state management with collections.
+- **Improved Example**: Updated the asymmetric operations example to demonstrate different parameter types (full object for add, ID for remove).
+
 ## What's New in v0.1.8
 
 - **Asymmetric Operations**: Added support for different functions for execute vs undo operations, perfect for non-idempotent operations like adding/removing items from collections.
@@ -281,6 +286,8 @@ function PersistenceToggle() {
 
 Use the asymmetric operations feature when you need different functions for execute vs undo operations. This is particularly useful for non-idempotent operations like adding/removing items from collections.
 
+#### Basic Asymmetric Operations (Same Parameter Types)
+
 ```typescript
 // filepath: src/components/MyItemList.tsx
 import React, { useState } from "react";
@@ -288,7 +295,7 @@ import { useTrackableState, HistoryControls } from "../StateHistory";
 
 function MyItemList() {
   const [items, setItems] = useState<string[]>([]);
-  
+
   // Use the second parameter of useTrackableState to provide a different function for undo operations
   const trackItemChange = useTrackableState<string[]>(
     "itemList/change",
@@ -298,35 +305,35 @@ function MyItemList() {
       setItems(oldItems);
     }
   );
-  
+
   const addItem = () => {
     const newItem = `item-${Date.now()}`;
     const newItems = [...items, newItem];
     const oldItems = [...items];
-    
+
     // Update state directly
     setItems(newItems);
-    
+
     // Track change for undo/redo
     trackItemChange(newItems, oldItems, `Add item: ${newItem}`);
   };
-  
+
   const removeItem = (itemToRemove: string) => {
     const oldItems = [...items];
-    const newItems = items.filter(item => item !== itemToRemove);
-    
+    const newItems = items.filter((item) => item !== itemToRemove);
+
     // Update state directly
     setItems(newItems);
-    
+
     // Track change for undo/redo
     trackItemChange(newItems, oldItems, `Remove item: ${itemToRemove}`);
   };
-  
+
   return (
     <div>
       <button onClick={addItem}>Add Item</button>
       <ul>
-        {items.map(item => (
+        {items.map((item) => (
           <li key={item}>
             {item}
             <button onClick={() => removeItem(item)}>Remove</button>
@@ -339,11 +346,118 @@ function MyItemList() {
 }
 ```
 
-By providing a specific undo function, you can customize how state is restored during undo operations. This is useful when:
+#### Advanced Asymmetric Operations (Different Parameter Types)
 
-1. The undo operation is not simply the reverse of the execute operation
-2. You're dealing with collections where items need to be added/removed differently
-3. You need complex cleanup logic during undo that differs from the execute phase
+For more complex scenarios, you can now use different parameter types for execute and undo operations. This is particularly useful when adding full objects to collections but only needing an ID to remove them:
+
+```typescript
+// filepath: src/components/AdvancedItemList.tsx
+import React, { useRef, useState } from "react";
+import { useTrackableState, HistoryControls } from "../StateHistory";
+
+// Define an item type with an ID and additional data
+interface Item {
+  id: string;
+  name: string;
+  createdAt: Date;
+}
+
+function AdvancedItemList() {
+  // Use a ref to store the collection to avoid re-renders on every change
+  const [, forceUpdate] = useState({});
+  const itemsRef = useRef<Item[]>([]);
+
+  // Action functions for adding and removing items
+  // Add takes a full Item object
+  const addItem = (item: Item) => {
+    itemsRef.current = [...itemsRef.current, item];
+    forceUpdate({}); // Force re-render to show changes
+  };
+
+  // Remove takes just the ID
+  const removeItemById = (id: string) => {
+    itemsRef.current = itemsRef.current.filter((item) => item.id !== id);
+    forceUpdate({}); // Force re-render to show changes
+  };
+
+  // Create trackers with asymmetric operations AND different parameter types
+  // For adding: 
+  // - execute uses addItem (takes full Item object)
+  // - undo uses removeItemById (takes just string ID)
+  const trackItemAddition = useTrackableState<Item, string>(
+    "item-addition",
+    addItem,           // Execute takes Item
+    removeItemById     // Undo takes string ID
+  );
+
+  // For removing: 
+  // - execute uses removeItemById (takes string ID)
+  // - undo uses addItem (takes full Item object)
+  const trackItemRemoval = useTrackableState<string, Item>(
+    "item-removal",
+    removeItemById,    // Execute takes string ID
+    addItem            // Undo takes Item
+  );
+
+  // Generate a unique item
+  const generateItem = (): Item => ({
+    id: `item-${Date.now()}`,
+    name: `Item ${itemsRef.current.length + 1}`,
+    createdAt: new Date(),
+  });
+
+  // Handle adding a new item
+  const handleAddItem = () => {
+    const newItem = generateItem();
+    
+    // Execute will use addItem with full object
+    // Undo will use removeItemById with just the ID
+    trackItemAddition(
+      newItem,       // newValue: full Item for execute
+      newItem.id,    // oldValue: just ID for undo
+      `Added ${newItem.name}`
+    );
+  };
+
+  // Handle removing an item
+  const handleRemoveItem = (item: Item) => {
+    // Execute will use removeItemById with just the ID
+    // Undo will use addItem with the full Item
+    trackItemRemoval(
+      item.id,       // newValue: just ID for execute
+      item,          // oldValue: full Item for undo
+      `Removed ${item.name}`
+    );
+  };
+
+  return (
+    <div>
+      <button onClick={handleAddItem}>Add Item</button>
+      <ul>
+        {itemsRef.current.map((item) => (
+          <li key={item.id}>
+            <strong>{item.name}</strong> (Created: {item.createdAt.toLocaleTimeString()})
+            <button onClick={() => handleRemoveItem(item)}>Remove</button>
+          </li>
+        ))}
+      </ul>
+      <HistoryControls />
+    </div>
+  );
+}
+```
+
+By providing asymmetric operations with different parameter types, you can:
+
+1. Optimize memory usage by storing only the minimum data needed for undo operations
+2. Handle complex data structures more efficiently
+3. Create more flexible undo/redo systems that work naturally with your domain model
+
+This advanced approach is especially valuable when working with:
+
+- Collection management (add/remove operations)
+- Database records (create/delete operations)
+- Complex state objects where only identifiers are needed for some operations
 
 ### 7. UI Controls (`HistoryControls`)
 
