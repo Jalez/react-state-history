@@ -1,7 +1,7 @@
 /** @format */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import {
   StateHistoryProvider,
   useHistoryStateContext,
@@ -20,23 +20,27 @@ describe("StateHistoryContext", () => {
   });
 
   // Custom matcher for StateChange history tests
-  function expectCommandHistory(
+  async function expectCommandHistory(
     result: { current: ReturnType<typeof useHistoryStateContext> },
     expectedProps: Partial<ReturnType<typeof useHistoryStateContext>>
   ) {
-    Object.entries(expectedProps).forEach(([key, value]) => {
-      expect(result.current[key as keyof typeof result.current]).toEqual(value);
+    await waitFor(() => {
+      Object.entries(expectedProps).forEach(([key, value]) => {
+        expect(result.current[key as keyof typeof result.current]).toEqual(
+          value
+        );
+      });
     });
   }
 
-  it("should initialize with expected values", () => {
+  it("should initialize with expected values", async () => {
     const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
         <StateHistoryProvider>{children}</StateHistoryProvider>
       ),
     });
 
-    expectCommandHistory(result, {
+    await expectCommandHistory(result, {
       canUndo: false,
       canRedo: false,
       isPersistent: false,
@@ -49,7 +53,7 @@ describe("StateHistoryContext", () => {
     expect(typeof result.current.clear).toBe("function");
   });
 
-  it("should execute commands and update state", () => {
+  it("should execute commands and update state", async () => {
     const mockExecute = vi.fn();
     const mockUndo = vi.fn();
 
@@ -66,12 +70,14 @@ describe("StateHistoryContext", () => {
       ),
     });
 
-    act(() => {
+    await act(async () => {
       result.current.execute(testCommand);
+      // Add a small delay to ensure the state update completes
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // After executing, we should be able to undo
-    expectCommandHistory(result, {
+    await expectCommandHistory(result, {
       canUndo: true,
       canRedo: false,
     });
@@ -80,7 +86,7 @@ describe("StateHistoryContext", () => {
     expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 
-  it("should support undo/redo operations", () => {
+  it("should support undo/redo operations", async () => {
     const mockExecute = vi.fn();
     const mockUndo = vi.fn();
 
@@ -97,31 +103,34 @@ describe("StateHistoryContext", () => {
       ),
     });
 
-    act(() => {
+    await act(async () => {
       result.current.execute(testCommand);
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // After executing, we should be able to undo
-    expectCommandHistory(result, { canUndo: true, canRedo: false });
+    await expectCommandHistory(result, { canUndo: true, canRedo: false });
 
-    act(() => {
+    await act(async () => {
       result.current.undo();
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // After undoing, we should be able to redo but not undo again
-    expectCommandHistory(result, { canUndo: false, canRedo: true });
+    await expectCommandHistory(result, { canUndo: false, canRedo: true });
     expect(mockUndo).toHaveBeenCalledTimes(1);
 
-    act(() => {
+    await act(async () => {
       result.current.redo();
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // After redoing, we should be able to undo again but not redo
-    expectCommandHistory(result, { canUndo: true, canRedo: false });
+    await expectCommandHistory(result, { canUndo: true, canRedo: false });
     expect(mockExecute).toHaveBeenCalledTimes(2); // Initial + redo
   });
 
-  it("should clear StateChange history", () => {
+  it("should clear StateChange history", async () => {
     const testCommand: StateChange = {
       execute: vi.fn(),
       undo: vi.fn(),
@@ -135,21 +144,23 @@ describe("StateHistoryContext", () => {
       ),
     });
 
-    act(() => {
+    await act(async () => {
       result.current.execute(testCommand);
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
-    expectCommandHistory(result, { canUndo: true, canRedo: false });
+    await expectCommandHistory(result, { canUndo: true, canRedo: false });
 
-    act(() => {
+    await act(async () => {
       result.current.clear();
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // After clearing, we should not be able to undo or redo
-    expectCommandHistory(result, { canUndo: false, canRedo: false });
+    await expectCommandHistory(result, { canUndo: false, canRedo: false });
   });
 
-  it("should support toggling persistence", () => {
+  it("should support toggling persistence", async () => {
     const { result } = renderHook(() => useHistoryStateContext(), {
       wrapper: ({ children }) => (
         <StateHistoryProvider storageKey="test-persistence">
@@ -159,7 +170,7 @@ describe("StateHistoryContext", () => {
     });
 
     // Initially persistence is off
-    expectCommandHistory(result, { isPersistent: false });
+    await expectCommandHistory(result, { isPersistent: false });
 
     // Execute a StateChange to have something to persist
     const testCommand: StateChange = {
@@ -169,30 +180,33 @@ describe("StateHistoryContext", () => {
       description: "Test StateChange",
     };
 
-    act(() => {
+    await act(async () => {
       result.current.execute(testCommand);
+      await new Promise((resolve) => setTimeout(resolve, 10));
       result.current.togglePersistence();
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // Now persistence should be on
-    expectCommandHistory(result, { isPersistent: true });
+    await expectCommandHistory(result, { isPersistent: true });
 
     // Verify something was saved to localStorage
     expect(localStorage.getItem("state_history_test-persistence")).toBeTruthy();
 
     // Toggle off
-    act(() => {
+    await act(async () => {
       result.current.togglePersistence();
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // Now persistence should be off
-    expectCommandHistory(result, { isPersistent: false });
+    await expectCommandHistory(result, { isPersistent: false });
 
     // Storage should be cleared
     expect(localStorage.getItem("state_history_test-persistence")).toBeNull();
   });
 
-  it("should load state from storage on initialization", () => {
+  it("should load state from storage on initialization", async () => {
     // First create and save a state
     const testCommand: StateChange = {
       execute: vi.fn(),
@@ -213,8 +227,9 @@ describe("StateHistoryContext", () => {
     );
 
     // Execute a StateChange and ensure it's persisted
-    act(() => {
+    await act(async () => {
       initialResult.current.execute(testCommand);
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
     // Make sure the state was persisted
@@ -232,8 +247,13 @@ describe("StateHistoryContext", () => {
       ),
     });
 
+    // Wait for the initial load to complete
+    await waitFor(() => {
+      expect(newResult.current.initialStateLoaded).toBe(true);
+    });
+
     // The new hook should have the persisted state
-    expectCommandHistory(newResult, {
+    await expectCommandHistory(newResult, {
       canUndo: true,
       canRedo: false,
       isPersistent: true,

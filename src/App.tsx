@@ -7,6 +7,7 @@ import { PersistentCounterExample } from "./examples/04-persistence/PersistentCo
 import { PersistentToggleCounter } from "./examples/05-persistence-toggle/PersistentToggleCounter";
 import { DuplicateCommandTypesExample } from "./examples/06-duplicate-command-types/DuplicateCommandTypes";
 import Flow from "./examples/07-react-flow/reactFlowDelete";
+import AsymmetricOperationsExample from "./examples/09-asymmetric-operations/AsymmetricOperations";
 
 function App() {
   // Refs for section navigation
@@ -17,6 +18,7 @@ function App() {
   const registryRef = useRef<HTMLDivElement>(null);
   const duplicateTypesRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<HTMLDivElement>(null);
+  const asymmetricOperationsRef = useRef<HTMLDivElement>(null);
 
   // Scroll to section - fix the type to match React.useRef's return type
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -42,9 +44,7 @@ function App() {
           </span>
           -history
         </h1>
-        <p>
-        A General way to manage state history in your application. 
-        </p>
+        <p>A General way to manage state history in your application.</p>
 
         <div className="tabs">
           <button onClick={() => scrollToSection(basicRef)}>
@@ -67,6 +67,9 @@ function App() {
           </button>
           <button onClick={() => scrollToSection(reactFlowRef)}>
             7. React Flow Integration
+          </button>
+          <button onClick={() => scrollToSection(asymmetricOperationsRef)}>
+            8. Asymmetric Operations
           </button>
         </div>
       </header>
@@ -119,7 +122,7 @@ function App() {
             </button>
           </div>
         </div>
-        
+
         <div className="section" id="registry" ref={registryRef}>
           <PersistentToggleCounter key="registry-example" />
           <div className="section-divider">
@@ -131,7 +134,7 @@ function App() {
             </button>
           </div>
         </div>
-        
+
         <div className="section" id="duplicate-types" ref={duplicateTypesRef}>
           <DuplicateCommandTypesExample key="duplicate-types-example" />
           <div className="section-divider">
@@ -146,6 +149,22 @@ function App() {
 
         <div className="section" id="react-flow" ref={reactFlowRef}>
           <Flow key="react-flow-example" />
+          <div className="section-divider">
+            <button
+              className="back-to-top"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Back to Top
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="section"
+          id="asymmetric-operations"
+          ref={asymmetricOperationsRef}
+        >
+          <AsymmetricOperationsExample key="asymmetric-operations-example" />
           <div className="section-divider">
             <button
               className="back-to-top"

@@ -10,6 +10,12 @@
 
 - **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
 
+## What's New in v0.1.8
+
+- **Asymmetric Operations**: Added support for different functions for execute vs undo operations, perfect for non-idempotent operations like adding/removing items from collections.
+- **Enhanced Testing**: Improved test stability by properly handling React state updates with `act()` and `waitFor()`.
+- **Fixed Context Tests**: Addressed issues in context testing to ensure reliable test results across the library.
+
 ## What's New in v0.1.2
 
 - **Code Simplification**: The core logic has been streamlined for better maintainability without removing any functionality.
@@ -271,7 +277,75 @@ function PersistenceToggle() {
 }
 ```
 
-### 6. UI Controls (`HistoryControls`)
+### 6. Asymmetric Operations
+
+Use the asymmetric operations feature when you need different functions for execute vs undo operations. This is particularly useful for non-idempotent operations like adding/removing items from collections.
+
+```typescript
+// filepath: src/components/MyItemList.tsx
+import React, { useState } from "react";
+import { useTrackableState, HistoryControls } from "../StateHistory";
+
+function MyItemList() {
+  const [items, setItems] = useState<string[]>([]);
+  
+  // Use the second parameter of useTrackableState to provide a different function for undo operations
+  const trackItemChange = useTrackableState<string[]>(
+    "itemList/change",
+    setItems,
+    (oldItems: string[]) => {
+      // During undo, we want to completely replace the items with the old value
+      setItems(oldItems);
+    }
+  );
+  
+  const addItem = () => {
+    const newItem = `item-${Date.now()}`;
+    const newItems = [...items, newItem];
+    const oldItems = [...items];
+    
+    // Update state directly
+    setItems(newItems);
+    
+    // Track change for undo/redo
+    trackItemChange(newItems, oldItems, `Add item: ${newItem}`);
+  };
+  
+  const removeItem = (itemToRemove: string) => {
+    const oldItems = [...items];
+    const newItems = items.filter(item => item !== itemToRemove);
+    
+    // Update state directly
+    setItems(newItems);
+    
+    // Track change for undo/redo
+    trackItemChange(newItems, oldItems, `Remove item: ${itemToRemove}`);
+  };
+  
+  return (
+    <div>
+      <button onClick={addItem}>Add Item</button>
+      <ul>
+        {items.map(item => (
+          <li key={item}>
+            {item}
+            <button onClick={() => removeItem(item)}>Remove</button>
+          </li>
+        ))}
+      </ul>
+      <HistoryControls />
+    </div>
+  );
+}
+```
+
+By providing a specific undo function, you can customize how state is restored during undo operations. This is useful when:
+
+1. The undo operation is not simply the reverse of the execute operation
+2. You're dealing with collections where items need to be added/removed differently
+3. You need complex cleanup logic during undo that differs from the execute phase
+
+### 7. UI Controls (`HistoryControls`)
 
 Use the `HistoryControls` component to render standard Undo, Redo, and Clear buttons.
 

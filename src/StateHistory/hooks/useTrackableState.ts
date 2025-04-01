@@ -1,7 +1,7 @@
 /** @format */
-import React, { useCallback, useEffect, useRef } from 'react';
-import { useHistoryStateContext } from '../context/StateHistoryContext';
-import { createValueChangeCommand } from '../utils/stateChangeUtils';
+import React, { useCallback, useEffect, useRef } from "react";
+import { useHistoryStateContext } from "../context/StateHistoryContext";
+import { createValueChangeCommand } from "../utils/stateChangeUtils";
 
 /**
  * The module provides two complementary hooks for state management with undo/redo support:
@@ -10,6 +10,7 @@ import { createValueChangeCommand } from '../utils/stateChangeUtils';
  *    - Works with any state setter function (from useState, useReducer, or custom hooks)
  *    - Requires manual tracking of previous values
  *    - More flexible for complex state management scenarios
+ *    - Supports asymmetric execute/undo operations for non-idempotent state changes
  *
  * 2. useHistoryState - A higher-level, all-in-one state management solution
  *    - Combines React's useState with undo/redo capability in one hook
@@ -29,36 +30,63 @@ interface ValueChangeParams<T> {
 /**
  * A hook that creates value change commands with minimal boilerplate
  *
- * @param commandType Unique identifier for this StateChange type
- * @param setValue Function to set the value (e.g., from useState)
+ * @param commandType - Unique identifier for this StateChange type
+ * @param executeSetValue - Function to execute when setting a new value or redoing
+ * @param undoSetValue - Optional function for undo operations. If not provided, executeSetValue is used for both
  * @returns A function to update the value that automatically creates undo/redo commands
+ *
+ * @example
+ * // Symmetric operations (existing behavior)
+ * const [count, setCount] = useState(0);
+ * const trackCount = useTrackableState('counter', setCount);
+ * trackCount(count + 1, count, 'Increment counter');
+ *
+ * @example
+ * // Asymmetric operations (new capability)
+ * const itemsRef = useRef<string[]>([]);
+ * const addItem = (item) => { itemsRef.current = [...itemsRef.current, item]; };
+ * const removeItem = (item) => { itemsRef.current = itemsRef.current.filter(i => i !== item); };
+ *
+ * // Use with different execute/undo functions
+ * const trackItemAddition = useTrackableState('add-item', addItem, removeItem);
+ * trackItemAddition('new-item', 'new-item', 'Added new item');
  */
 export function useTrackableState<T>(
   commandType: string,
-  setValue: (value: T) => void
+  executeSetValue: (value: T) => void,
+  undoSetValue?: (value: T) => void
 ): (newValue: T, oldValue: T, description?: string) => void {
   const { execute, registerCommand, hasCommand } = useHistoryStateContext();
   const { commandRegistry } = useHistoryStateContext();
   const isRegistered = useRef(false);
+
+  // Default to using executeSetValue for both operations if undoSetValue is not provided
+  const finalUndoSetValue = undoSetValue || executeSetValue;
 
   // Register the value change command once
   useEffect(() => {
     if (!isRegistered.current && !hasCommand(commandType)) {
       registerCommand<ValueChangeParams<T>>(
         commandType,
-        params => setValue(params.newValue),
-        params => setValue(params.oldValue)
+        (params) => executeSetValue(params.newValue),
+        (params) => finalUndoSetValue(params.oldValue)
       );
       isRegistered.current = true;
     }
-  }, [commandType, setValue, registerCommand, hasCommand]);
+  }, [
+    commandType,
+    executeSetValue,
+    finalUndoSetValue,
+    registerCommand,
+    hasCommand,
+  ]);
 
   // Return a function that creates and executes the StateChange
   return useCallback(
     (newValue: T, oldValue: T, description?: string) => {
       if (!commandRegistry) {
         throw new Error(
-          'Command registry is not available. Ensure you are using this hook within a StateHistoryProvider.'
+          "Command registry is not available. Ensure you are using this hook within a StateHistoryProvider."
         );
       }
       const stateChange = createValueChangeCommand<T>(
@@ -66,7 +94,10 @@ export function useTrackableState<T>(
         oldValue,
         newValue,
         description,
-        commandRegistry as unknown as Record<string, { execute: () => void; undo: () => void }>
+        commandRegistry as unknown as Record<
+          string,
+          { execute: () => void; undo: () => void }
+        >
       );
       execute(stateChange);
     },
@@ -95,8 +126,8 @@ export function useHistoryState<T>(
     if (!isRegistered.current && !hasCommand(commandType)) {
       registerCommand<ValueChangeParams<T>>(
         commandType,
-        params => setValueDirect(params.newValue),
-        params => setValueDirect(params.oldValue)
+        (params) => setValueDirect(params.newValue),
+        (params) => setValueDirect(params.oldValue)
       );
       isRegistered.current = true;
     }
@@ -110,7 +141,10 @@ export function useHistoryState<T>(
         value,
         newValue,
         description,
-        commandRegistry as unknown as Record<string, { execute: () => void; undo: () => void }>
+        commandRegistry as unknown as Record<
+          string,
+          { execute: () => void; undo: () => void }
+        >
       );
       execute(stateChange);
     },
