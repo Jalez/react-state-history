@@ -215,17 +215,28 @@ export const commandHistoryReducer = (
         };
       }
 
+      // Ensure all commands in the buffer have execute and undo methods to avoid errors
+      const validCommands = state.transactionBuffer.filter(cmd => 
+        cmd && typeof cmd.execute === 'function' && typeof cmd.undo === 'function'
+      );
+
+      if (validCommands.length === 0) {
+        console.warn('No valid commands in transaction buffer to commit');
+        return {
+          ...state,
+          transactionInProgress: false,
+          transactionBuffer: [],
+          transactionDescription: undefined,
+        };
+      }
+
       // Create a composite command from all buffered commands
       const compositeCommand: StateChange = {
         id: `transaction-${Date.now()}`,
         description: state.transactionDescription,
-        // The execute function will execute all commands in the buffer
-        execute: () => state.transactionBuffer.forEach((cmd) => cmd.execute()),
-        // The undo function will undo all commands in reverse order
-        undo: () =>
-          [...state.transactionBuffer].reverse().forEach((cmd) => cmd.undo()),
-        // Store all commands for potential serialization
-        params: { commands: state.transactionBuffer },
+        execute: () => validCommands.forEach((cmd) => cmd.execute()),
+        undo: () => [...validCommands].reverse().forEach((cmd) => cmd.undo()),
+        params: { commands: validCommands },
         commandName: "transaction",
       };
 

@@ -10,6 +10,12 @@
 
 - **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
 
+## What's New in v0.2.2
+
+- **Fixed Transaction Persistence Issue**: Resolved an issue where transaction commands weren't properly registered after a page refresh, leading to errors when trying to undo transaction operations.
+- **Improved Command Hydration**: Enhanced the hydration process for transaction commands to correctly restore nested commands after page refresh.
+- **Better Error Handling**: Added defensive code to handle malformed commands in transaction buffers, preventing runtime errors.
+
 ## What's New in v0.2.0
 
 - **Automatic Transaction Rollback**: Enhanced `abortTransaction()` to automatically undo all state changes made during a transaction, eliminating the need for manual state restoration in error scenarios.

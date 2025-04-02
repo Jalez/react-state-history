@@ -81,7 +81,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
 
   // Try to reconnect any pending commands when registry updates
   useEffect(() => {
-    if (initialLoadAttempted && state.undoStack.length > 0) {
+    if (initialLoadAttempted && (state.undoStack.length > 0 || state.redoStack.length > 0)) {
       const hasNewCommands = Object.keys(state.commandRegistry).some(
         (cmd) => !registeredCommands.includes(cmd)
       );
@@ -89,8 +89,38 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
       if (hasNewCommands) {
         // Helper function to reconnect commands using registry
         const reconnectCommand = (cmd: StateChange): StateChange => {
+          // Handle transaction commands specially to reconnect their nested commands
+          if (cmd.commandName === 'transaction' && cmd.params && typeof cmd.params === 'object') {
+            const transactionParams = cmd.params as { commands?: StateChange[] };
+            if (transactionParams.commands && Array.isArray(transactionParams.commands)) {
+              // Recursively reconnect each command in the transaction buffer
+              const reconnectedCommands = transactionParams.commands.map((nestedCmd: StateChange) => 
+                reconnectCommand(nestedCmd)
+              );
+              
+              return {
+                ...cmd,
+                params: { ...transactionParams, commands: reconnectedCommands },
+                execute: () => {
+                  reconnectedCommands.forEach((nestedCmd: StateChange) => {
+                    if (nestedCmd && typeof nestedCmd.execute === 'function') {
+                      nestedCmd.execute();
+                    }
+                  });
+                },
+                undo: () => {
+                  [...reconnectedCommands].reverse().forEach((nestedCmd: StateChange) => {
+                    if (nestedCmd && typeof nestedCmd.undo === 'function') {
+                      nestedCmd.undo();
+                    }
+                  });
+                }
+              };
+            }
+          }
+          
+          // For regular commands, reconnect with the registry
           if (cmd.commandName && state.commandRegistry[cmd.commandName]) {
-            // Reconnect the command with the registry
             return {
               ...cmd,
               execute: () =>
@@ -126,6 +156,8 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     registeredCommands,
     state.undoStack,
     state.redoStack,
+    state,
+    dispatch
   ]);
 
   // Save state when it changes and persistence is enabled

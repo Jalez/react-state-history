@@ -1,6 +1,15 @@
 /** @format */
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useHistoryStateContext } from "../context/StateHistoryContext";
+import { StateChange } from "../types";
+
+// Define the transaction command type
+const TRANSACTION_COMMAND_TYPE = "transaction";
+
+// Define the type for transaction command parameters
+interface TransactionCommandParams {
+  commands: StateChange[];
+}
 
 /**
  * Hook for managing transactions to group multiple operations into a single undoable action
@@ -13,7 +22,49 @@ export function useTransaction() {
     commitTransaction,
     abortTransaction,
     isTransactionInProgress,
+    registerCommand,
+    hasCommand
   } = useHistoryStateContext();
+  
+  // Track if we've registered the command
+  const isRegistered = useRef(false);
+
+  // Register the transaction command type when the hook is initialized
+  useEffect(() => {
+    if (!isRegistered.current && !hasCommand(TRANSACTION_COMMAND_TYPE)) {
+      // Register the transaction command type
+      registerCommand<TransactionCommandParams>(
+        TRANSACTION_COMMAND_TYPE,
+        (params) => {
+          // The execute function executes all commands in the buffer
+          // Make sure each command has an execute method
+          if (params && params.commands) {
+            params.commands.forEach(cmd => {
+              if (cmd && typeof cmd.execute === 'function') {
+                cmd.execute();
+              } else {
+                console.warn('Transaction command missing execute method:', cmd);
+              }
+            });
+          }
+        },
+        (params) => {
+          // The undo function undoes all commands in reverse order
+          // Make sure each command has an undo method
+          if (params && params.commands) {
+            [...params.commands].reverse().forEach(cmd => {
+              if (cmd && typeof cmd.undo === 'function') {
+                cmd.undo();
+              } else {
+                console.warn('Transaction command missing undo method:', cmd);
+              }
+            });
+          }
+        }
+      );
+      isRegistered.current = true;
+    }
+  }, [registerCommand, hasCommand]);
 
   /**
    * Executes a function within a transaction context

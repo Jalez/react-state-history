@@ -137,6 +137,31 @@ export function hydrateCommand<T>(
   const registry = contextRegistry || getGlobalRegistryFallback();
   const commandFn = registry[commandName];
   
+  // For transaction commands, ensure the nested commands in params.commands
+  // are also properly hydrated
+  if (commandName === 'transaction' && params && typeof params === 'object') {
+    const transactionParams = params as { commands?: StateChange[] };
+    if (transactionParams.commands && Array.isArray(transactionParams.commands)) {
+      transactionParams.commands = transactionParams.commands.map((cmd: StateChange) => {
+        // If this is already a full StateChange with execute and undo methods, return it
+        if (cmd && typeof cmd.execute === 'function' && typeof cmd.undo === 'function') {
+          return cmd;
+        }
+        // Otherwise, try to hydrate it if it has a commandName
+        if (cmd && cmd.commandName) {
+          // Ensure the cmd has an id before hydrating
+          const cmdWithId = {
+            ...cmd,
+            id: cmd.id || `cmd-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+          };
+          return hydrateCommand(cmdWithId as SerializableStateChange<T>, contextRegistry);
+        }
+        // If all else fails, return the original command
+        return cmd;
+      });
+    }
+  }
+  
   if (!commandFn) {
     // Return a StateChange that will try to resolve the command again when executed
     return {
@@ -144,6 +169,8 @@ export function hydrateCommand<T>(
       description: description || `Pending StateChange: ${commandName}`,
       execute: () => {
         const latestRegistry = contextRegistry || getGlobalRegistryFallback();
+        console.log(`Executing StateChange: ${commandName}`);
+        console.log('latestRegistry', latestRegistry);
         if (latestRegistry[commandName]) {
           return latestRegistry[commandName].execute(params);
         }
@@ -151,6 +178,8 @@ export function hydrateCommand<T>(
       },
       undo: () => {
         const latestRegistry = contextRegistry || getGlobalRegistryFallback();
+        console.log(`Undoing StateChange: ${commandName}`);
+        console.log('latestRegistry', latestRegistry);
         if (latestRegistry[commandName]) {
           return latestRegistry[commandName].undo(params);
         }
