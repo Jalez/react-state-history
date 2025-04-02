@@ -256,6 +256,7 @@ function FlowWithHistory() {
         onNodesChange={onNodesChange}
         onNodesDelete={handleDelete
         }
+        onEdgesDelete={handleDelete}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onEdgesChange={onEdgesChange}
