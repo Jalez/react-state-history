@@ -99,6 +99,21 @@ export interface StateHistory {
    * Per-context command registry to isolate command types between different provider instances
    */
   commandRegistry: CommandRegistry;
+
+  /**
+   * Whether a transaction is currently in progress
+   */
+  transactionInProgress: boolean;
+
+  /**
+   * Buffer to store commands during a transaction
+   */
+  transactionBuffer: StateChange[];
+
+  /**
+   * Description of the current transaction
+   */
+  transactionDescription?: string;
 }
 
 /**
@@ -118,7 +133,10 @@ export type StateHistoryAction =
       executeFn: <T>(params: T) => void;
       undoFn: <T>(params: T) => void;
     }
-  | { type: "UNREGISTER_COMMAND"; name: string };
+  | { type: "UNREGISTER_COMMAND"; name: string }
+  | { type: "BEGIN_TRANSACTION"; description?: string }
+  | { type: "COMMIT_TRANSACTION" }
+  | { type: "ABORT_TRANSACTION" };
 
 /**
  * Context interface that extends the state with available operations
@@ -182,6 +200,26 @@ export interface StateHistoryContextType extends StateHistory {
    * Check if a command exists in the context-specific registry
    */
   hasCommand: (name: string) => boolean;
+
+  /**
+   * Begin a transaction to group multiple operations
+   */
+  beginTransaction: (description?: string) => void;
+
+  /**
+   * Commit a transaction, combining all buffered operations into a single undo/redo step
+   */
+  commitTransaction: () => void;
+
+  /**
+   * Abort a transaction, discarding all buffered operations
+   */
+  abortTransaction: () => void;
+
+  /**
+   * Whether a transaction is currently in progress
+   */
+  isTransactionInProgress: boolean;
 }
 
 /**

@@ -1,0 +1,144 @@
+# Proposal: Transaction API for Grouping Operations
+
+## Problem Statement
+
+Currently, when multiple related operations occur simultaneously (such as deleting both nodes and edges in a single user action), they're tracked as separate undo/redo operations. This creates a disjointed user experience where multiple undo actions are required to revert what was conceptually a single operation.
+
+In the ReactFlow example, pressing Delete with both nodes and edges selected triggers:
+1. `trackNodesChange(newNodes, oldNodes, "Delete nodes")`
+2. `trackEdgesChange(newEdges, oldEdges, "Delete edges")`
+
+This results in two separate undo operations when users would expect a single undo to restore everything.
+
+## Proposed Solution: Transaction API
+
+I propose implementing a Transaction API that allows grouping multiple state changes into a single atomic operation for undo/redo purposes.
+
+### Core Concepts
+
+1. **Transaction Context**: A mechanism to track when operations should be grouped
+2. **Transaction Lifecycle**: Methods to begin, commit, and abort transactions
+3. **Command Grouping**: Using our existing `createCompositeCommand` to implement the grouping
+
+### API Design
+
+```typescript
+// New hooks for transaction management
+function useTransaction(): {
+  beginTransaction: (description?: string) => void;
+  commitTransaction: () => void;
+  abortTransaction: () => void;
+  isTransactionInProgress: boolean;
+};
+
+// Enhanced context properties
+interface StateHistoryContextType extends StateHistory {
+  // ... existing properties
+  
+  // Transaction methods
+  beginTransaction: (description?: string) => void;
+  commitTransaction: () => void;
+  abortTransaction: () => void;
+  isTransactionInProgress: boolean;
+}
+```
+
+### Implementation Strategy
+
+1. Extend the `StateHistoryContext` to include transaction state
+2. Add transaction management actions to the reducer
+3. Buffer commands during an active transaction
+4. When committing a transaction, create a composite command from the buffered commands
+5. Add proper error handling and fallbacks
+
+```typescript
+// Extended reducer state
+export interface StateHistory {
+  // ... existing properties
+  
+  // Transaction-related properties
+  transactionInProgress: boolean;
+  transactionBuffer: StateChange[];
+  transactionDescription?: string;
+}
+
+// New reducer actions
+type StateHistoryAction =
+  | // ... existing actions
+  | { type: "BEGIN_TRANSACTION"; description?: string }
+  | { type: "COMMIT_TRANSACTION" }
+  | { type: "ABORT_TRANSACTION" };
+```
+
+## Example Usage
+
+Here's how the ReactFlow example could be refactored to use transactions:
+
+```typescript
+// Handle delete key press to remove selected nodes and edges
+useEffect(() => {
+  if (deleteKeyPressed) {
+    // Start a transaction for the deletion operation
+    beginTransaction("Delete selection");
+    
+    // Handle node deletion if needed
+    if (selectedNodesRef.current.length > 0) {
+      const oldNodes = [...nodes];
+      const newNodes = nodes.filter(
+        (node) => !selectedNodesRef.current.some(
+          (selectedNode) => selectedNode.id === node.id
+        )
+      );
+      trackNodesChange(newNodes, oldNodes, "Delete nodes");
+      selectedNodesRef.current = [];
+    }
+
+    // Handle edge deletion if needed
+    if (selectedEdgesRef.current.length > 0) {
+      const oldEdges = [...edges];
+      const newEdges = edges.filter(
+        (edge) => !selectedEdgesRef.current.some(
+          (selectedEdge) => selectedEdge.id === edge.id
+        )
+      );
+      trackEdgesChange(newEdges, oldEdges, "Delete edges");
+      selectedEdgesRef.current = [];
+    }
+    
+    // Commit the transaction, grouping all changes into one undo step
+    commitTransaction();
+  }
+}, [deleteKeyPressed, nodes, edges, trackNodesChange, trackEdgesChange, beginTransaction, commitTransaction]);
+```
+
+## Benefits
+
+1. **Improved UX**: Single undo/redo for conceptually single operations
+2. **Developer Flexibility**: Explicit control over operation grouping
+3. **Maintainable Code**: Logical grouping of related operations
+4. **Backward Compatible**: All existing code continues to work
+
+## Technical Implementation Details
+
+1. **State Management**: During transactions, commands are stored in a buffer rather than immediately added to the undo stack
+2. **Composite Command Creation**: When committing, we create a composite command from all buffered commands
+3. **Error Handling**: If an error occurs during a transaction, we can abort and discard all buffered commands
+4. **Persistence Support**: Ensure composite commands are properly serialized/deserialized
+
+## Considerations
+
+1. **Nested Transactions**: Should we support nested transactions? Initial proposal: no, treat nested begins as no-ops
+2. **Automatic Commits**: Should transactions auto-commit after a certain time? Initial proposal: no, require explicit commits
+3. **Transaction Timeout**: Should we abort long-running transactions? Initial proposal: no timeout
+4. **UI Feedback**: How do we indicate a transaction is in progress? Initial proposal: leave this to application code
+
+## Roadmap
+
+1. Implement the core transaction API in the context and reducer
+2. Add the necessary hooks
+3. Update documentation and examples
+4. Add tests for transaction functionality
+5. Consider advanced features for future versions:
+   - Transaction idle timeout
+   - Transaction metadata
+   - Transaction merge policies

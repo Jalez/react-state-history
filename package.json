@@ -1,6 +1,6 @@
 {
   "name": "@jalez/react-state-history",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "description": "A flexible React library for managing state history with undo/redo functionality",

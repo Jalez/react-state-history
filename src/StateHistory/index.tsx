@@ -15,6 +15,7 @@ export {
 // Export simplified hooks
 export { useTrackableState, useHistoryState } from "./hooks/useTrackableState";
 export { useLatestState } from "./hooks/useLatestState";
+export { useTransaction } from "./hooks/useTransaction";
 
 // Export StateChange utilities
 export {

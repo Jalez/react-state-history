@@ -8,6 +8,7 @@
  * - Using StateHistory with a third-party library (React Flow)
  * - Creating custom commands for complex operations
  * - Managing external state with useTrackableState
+ * - Using transactions to group related operations into single undo steps
  */
 import { useCallback, useState, useRef, useEffect } from "react";
 import {
@@ -30,6 +31,7 @@ import {
   useTrackableState,
   useLatestState,
   useHistoryStateContext,
+  useTransaction,
 } from "../../StateHistory";
 
 import "@xyflow/react/dist/style.css";
@@ -74,6 +76,9 @@ function FlowWithHistory() {
   const latestNodeState = useLatestState<FlowNode[]>("flowNodes/update");
   const latestEdgeState = useLatestState<Edge[]>("flowEdges/update");
   const { initialStateLoaded } = useHistoryStateContext();
+
+  // Get transaction API from our new hook
+  const { withTransaction } = useTransaction();
 
   // Use the type from initialNodes for useNodesState
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -132,45 +137,63 @@ function FlowWithHistory() {
   // Handle delete key press to remove selected nodes and edges
   useEffect(() => {
     if (deleteKeyPressed) {
-      // Handle node deletion
-      if (selectedNodesRef.current.length > 0) {
-        const oldNodes = [...nodes];
+      const hasSelectedNodes = selectedNodesRef.current.length > 0;
+      const hasSelectedEdges = selectedEdgesRef.current.length > 0;
 
-        // Filter out the selected nodes to create new nodes array
-        const newNodes = nodes.filter(
-          (node) =>
-            !selectedNodesRef.current.some(
-              (selectedNode) => selectedNode.id === node.id
-            )
-        );
+      // Only start a transaction if there's something to delete
+      if (hasSelectedNodes || hasSelectedEdges) {
+        // Use the withTransaction helper to group the operations
+        withTransaction(() => {
+          // Handle node deletion if needed
+          if (hasSelectedNodes) {
+            console.log("Deleting nodes");
+            const oldNodes = [...nodes];
 
-        // Track the node deletion with our StateHistory hook
-        trackNodesChange(newNodes, oldNodes, "Delete nodes");
+            // Filter out the selected nodes to create new nodes array
+            const newNodes = nodes.filter(
+              (node) =>
+                !selectedNodesRef.current.some(
+                  (selectedNode) => selectedNode.id === node.id
+                )
+            );
 
-        // Clear selection after deletion to prevent attempting to delete again
-        selectedNodesRef.current = [];
-      }
+            // Track the node deletion with our StateHistory hook
+            trackNodesChange(newNodes, oldNodes, "Delete nodes");
 
-      // Handle edge deletion
-      if (selectedEdgesRef.current.length > 0) {
-        const oldEdges = [...edges];
+            // Clear selection after deletion to prevent attempting to delete again
+            selectedNodesRef.current = [];
+          }
 
-        // Filter out the selected edges to create new edges array
-        const newEdges = edges.filter(
-          (edge) =>
-            !selectedEdgesRef.current.some(
-              (selectedEdge) => selectedEdge.id === edge.id
-            )
-        );
+          // Handle edge deletion if needed
+          if (hasSelectedEdges) {
+            console.log("Deleting edges");
+            const oldEdges = [...edges];
 
-        // Track the edge deletion with our StateHistory hook
-        trackEdgesChange(newEdges, oldEdges, "Delete edges");
+            // Filter out the selected edges to create new edges array
+            const newEdges = edges.filter(
+              (edge) =>
+                !selectedEdgesRef.current.some(
+                  (selectedEdge) => selectedEdge.id === edge.id
+                )
+            );
 
-        // Clear selection after deletion to prevent attempting to delete again
-        selectedEdgesRef.current = [];
+            // Track the edge deletion with our StateHistory hook
+            trackEdgesChange(newEdges, oldEdges, "Delete edges");
+
+            // Clear selection after deletion to prevent attempting to delete again
+            selectedEdgesRef.current = [];
+          }
+        }, "Delete selection"); // Provide a meaningful description for the transaction
       }
     }
-  }, [deleteKeyPressed, nodes, edges, trackNodesChange, trackEdgesChange]);
+  }, [
+    deleteKeyPressed,
+    nodes,
+    edges,
+    trackNodesChange,
+    trackEdgesChange,
+    withTransaction,
+  ]);
 
   const onNodeDragStart = useCallback(() => {
     // Store current nodes before the change
@@ -246,6 +269,10 @@ export default function Flow() {
             history
           </li>
           <li>
+            <strong>Transaction API:</strong> Grouping related operations (like
+            deleting both nodes and edges) into a single undoable action
+          </li>
+          <li>
             <strong>useLatestState:</strong> Retrieving persistent state
             specifically for third-party library integration
           </li>
@@ -255,8 +282,9 @@ export default function Flow() {
           </li>
         </ul>
         <p>
-          Try moving nodes, connecting them, or deleting them, then use the
-          undo/redo controls to revert or replay those changes.
+          Try selecting both nodes and edges, then press Delete. Notice how a
+          single undo operation restores everything, thanks to the Transaction
+          API.
         </p>
         <p className="note" style={{ fontSize: "0.9em", color: "#666" }}>
           <strong>Key insight:</strong> This example shows how StateHistory can

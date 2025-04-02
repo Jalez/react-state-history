@@ -8,6 +8,7 @@ import { PersistentToggleCounter } from "./examples/05-persistence-toggle/Persis
 import { DuplicateCommandTypesExample } from "./examples/06-duplicate-command-types/DuplicateCommandTypes";
 import Flow from "./examples/07-react-flow/reactFlowDelete";
 import AsymmetricOperationsExample from "./examples/09-asymmetric-operations/AsymmetricOperations";
+import FormTransactionExample from "./examples/10-transactions/FormTransactionExample";
 
 function App() {
   // Refs for section navigation
@@ -19,6 +20,7 @@ function App() {
   const duplicateTypesRef = useRef<HTMLDivElement>(null);
   const reactFlowRef = useRef<HTMLDivElement>(null);
   const asymmetricOperationsRef = useRef<HTMLDivElement>(null);
+  const FormTransactionRef = useRef<HTMLDivElement>(null);
 
   // Scroll to section - fix the type to match React.useRef's return type
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -70,6 +72,9 @@ function App() {
           </button>
           <button onClick={() => scrollToSection(asymmetricOperationsRef)}>
             8. Asymmetric Operations
+          </button>
+          <button onClick={() => scrollToSection(FormTransactionRef)}>
+            9. Form Transaction Example
           </button>
         </div>
       </header>
@@ -165,6 +170,17 @@ function App() {
           ref={asymmetricOperationsRef}
         >
           <AsymmetricOperationsExample key="asymmetric-operations-example" />
+          <div className="section-divider">
+            <button
+              className="back-to-top"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Back to Top
+            </button>
+          </div>
+        </div>
+        <div className="section" id="form-transaction" ref={FormTransactionRef}>
+          <FormTransactionExample key="form-transaction-example" />
           <div className="section-divider">
             <button
               className="back-to-top"

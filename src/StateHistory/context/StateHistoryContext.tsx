@@ -290,6 +290,34 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     [state.commandRegistry]
   );
 
+  // Transaction management methods
+  const beginTransaction = useCallback((description?: string) => {
+    dispatch({ type: "BEGIN_TRANSACTION", description });
+  }, []);
+
+  const commitTransaction = useCallback(() => {
+    scheduleDeferredAction(() => {
+      dispatch({ type: "COMMIT_TRANSACTION" });
+    });
+  }, [scheduleDeferredAction]);
+
+  const abortTransaction = useCallback(() => {
+    // First, automatically undo all operations in the transaction buffer in reverse order
+    if (state.transactionBuffer.length > 0) {
+      // Create a copy of the buffer and reverse it to undo in the correct order (LIFO)
+      [...state.transactionBuffer].reverse().forEach((command) => {
+        try {
+          command.undo();
+        } catch (error) {
+          console.error("Error during transaction abort rollback:", error);
+        }
+      });
+    }
+
+    // Then discard the transaction buffer
+    dispatch({ type: "ABORT_TRANSACTION" });
+  }, [state.transactionBuffer]);
+
   // Create context value
   const contextValue: StateHistoryContextType = {
     ...state,
@@ -304,6 +332,10 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     unregisterCommand,
     getCommand,
     hasCommand,
+    beginTransaction,
+    commitTransaction,
+    abortTransaction,
+    isTransactionInProgress: state.transactionInProgress,
   };
 
   return (

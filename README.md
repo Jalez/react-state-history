@@ -10,6 +10,13 @@
 
 - **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
 
+## What's New in v0.2.0
+
+- **Automatic Transaction Rollback**: Enhanced `abortTransaction()` to automatically undo all state changes made during a transaction, eliminating the need for manual state restoration in error scenarios.
+- **Robust Transaction Error Handling**: Added try/catch error handling in the transaction rollback process to ensure stability even if individual operations fail.
+- **Improved Transaction Documentation**: Updated JSDoc comments in the `useTransaction` hook to clearly explain the enhanced transaction behavior.
+- **Future Transaction Model Documentation**: Added design documentation for a potential "delayed execution" transaction model that would provide true database-style "all or nothing" semantics.
+
 ## What's New in v0.1.9
 
 - **Enhanced Asymmetric Operations**: Now supports different parameter types for execute vs undo operations, allowing for more efficient state management with collections.
@@ -381,22 +388,22 @@ function AdvancedItemList() {
   };
 
   // Create trackers with asymmetric operations AND different parameter types
-  // For adding: 
+  // For adding:
   // - execute uses addItem (takes full Item object)
   // - undo uses removeItemById (takes just string ID)
   const trackItemAddition = useTrackableState<Item, string>(
     "item-addition",
-    addItem,           // Execute takes Item
-    removeItemById     // Undo takes string ID
+    addItem, // Execute takes Item
+    removeItemById // Undo takes string ID
   );
 
-  // For removing: 
+  // For removing:
   // - execute uses removeItemById (takes string ID)
   // - undo uses addItem (takes full Item object)
   const trackItemRemoval = useTrackableState<string, Item>(
     "item-removal",
-    removeItemById,    // Execute takes string ID
-    addItem            // Undo takes Item
+    removeItemById, // Execute takes string ID
+    addItem // Undo takes Item
   );
 
   // Generate a unique item
@@ -409,12 +416,12 @@ function AdvancedItemList() {
   // Handle adding a new item
   const handleAddItem = () => {
     const newItem = generateItem();
-    
+
     // Execute will use addItem with full object
     // Undo will use removeItemById with just the ID
     trackItemAddition(
-      newItem,       // newValue: full Item for execute
-      newItem.id,    // oldValue: just ID for undo
+      newItem, // newValue: full Item for execute
+      newItem.id, // oldValue: just ID for undo
       `Added ${newItem.name}`
     );
   };
@@ -424,8 +431,8 @@ function AdvancedItemList() {
     // Execute will use removeItemById with just the ID
     // Undo will use addItem with the full Item
     trackItemRemoval(
-      item.id,       // newValue: just ID for execute
-      item,          // oldValue: full Item for undo
+      item.id, // newValue: just ID for execute
+      item, // oldValue: full Item for undo
       `Removed ${item.name}`
     );
   };
@@ -436,7 +443,8 @@ function AdvancedItemList() {
       <ul>
         {itemsRef.current.map((item) => (
           <li key={item.id}>
-            <strong>{item.name}</strong> (Created: {item.createdAt.toLocaleTimeString()})
+            <strong>{item.name}</strong> (Created:{" "}
+            {item.createdAt.toLocaleTimeString()})
             <button onClick={() => handleRemoveItem(item)}>Remove</button>
           </li>
         ))}

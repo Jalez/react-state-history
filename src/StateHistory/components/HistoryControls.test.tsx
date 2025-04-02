@@ -27,13 +27,21 @@ describe("HistoryControls", () => {
     undoStack: [],
     redoStack: [],
     maxStackSize: 50,
-    initialStateLoaded: true, // Added the missing property
+    initialStateLoaded: true,
     // Add command registry related properties
     registerCommand: vi.fn(),
     unregisterCommand: vi.fn(),
     getCommand: vi.fn(),
     hasCommand: vi.fn(),
     commandRegistry: {},
+    // Add transaction-related properties
+    beginTransaction: vi.fn(),
+    commitTransaction: vi.fn(),
+    abortTransaction: vi.fn(),
+    isTransactionInProgress: false,
+    transactionInProgress: false,
+    transactionBuffer: [],
+    transactionDescription: undefined,
   };
 
   // Helper to set up the mock context for each test

@@ -24,6 +24,9 @@ type HistoryAction =
       undoFn: (params: unknown) => void;
     }
   | { type: "UNREGISTER_COMMAND"; name: string }
+  | { type: "BEGIN_TRANSACTION"; description?: string }
+  | { type: "COMMIT_TRANSACTION" }
+  | { type: "ABORT_TRANSACTION" }
   | { type: "@@INIT" };
 
 // Define initial state
@@ -35,6 +38,9 @@ export const initialState: StateHistory = {
   commandRegistry: {},
   canUndo: false,
   canRedo: false,
+  transactionInProgress: false,
+  transactionBuffer: [],
+  transactionDescription: undefined,
 };
 
 /**
@@ -46,7 +52,15 @@ export const commandHistoryReducer = (
 ): StateHistory => {
   switch (action.type) {
     case "EXECUTE": {
-      // Calculate new undo stack while respecting maxStackSize
+      // If a transaction is in progress, add to buffer instead of undo stack
+      if (state.transactionInProgress) {
+        return {
+          ...state,
+          transactionBuffer: [...state.transactionBuffer, action.StateChange],
+        };
+      }
+
+      // Normal execution (no transaction)
       const newUndoStack = [...state.undoStack, action.StateChange];
       if (newUndoStack.length > state.maxStackSize) {
         newUndoStack.shift(); // Remove oldest item if exceeding max size
@@ -125,7 +139,7 @@ export const commandHistoryReducer = (
     case "LOAD_PERSISTENT_STATE": {
       const undoStack = action.state.undoStack || state.undoStack;
       const redoStack = action.state.redoStack || state.redoStack;
-      
+
       // Only merge specified fields
       return {
         ...state,
@@ -163,10 +177,83 @@ export const commandHistoryReducer = (
     case "UNREGISTER_COMMAND": {
       const newCommandRegistry = { ...state.commandRegistry };
       delete newCommandRegistry[action.name];
-      
+
       return {
         ...state,
         commandRegistry: newCommandRegistry,
+      };
+    }
+
+    case "BEGIN_TRANSACTION": {
+      // If already in a transaction, don't start a new one (no nested transactions)
+      if (state.transactionInProgress) {
+        console.warn(
+          "Transaction already in progress. Nested transactions are not supported."
+        );
+        return state;
+      }
+
+      return {
+        ...state,
+        transactionInProgress: true,
+        transactionBuffer: [],
+        transactionDescription: action.description || "Transaction",
+      };
+    }
+
+    case "COMMIT_TRANSACTION": {
+      // If no transaction is in progress or buffer is empty, just return the current state
+      if (
+        !state.transactionInProgress ||
+        state.transactionBuffer.length === 0
+      ) {
+        return {
+          ...state,
+          transactionInProgress: false,
+          transactionBuffer: [],
+          transactionDescription: undefined,
+        };
+      }
+
+      // Create a composite command from all buffered commands
+      const compositeCommand: StateChange = {
+        id: `transaction-${Date.now()}`,
+        description: state.transactionDescription,
+        // The execute function will execute all commands in the buffer
+        execute: () => state.transactionBuffer.forEach((cmd) => cmd.execute()),
+        // The undo function will undo all commands in reverse order
+        undo: () =>
+          [...state.transactionBuffer].reverse().forEach((cmd) => cmd.undo()),
+        // Store all commands for potential serialization
+        params: { commands: state.transactionBuffer },
+        commandName: "transaction",
+      };
+
+      // Add the composite command to the undo stack
+      const newUndoStack = [...state.undoStack, compositeCommand];
+      if (newUndoStack.length > state.maxStackSize) {
+        newUndoStack.shift(); // Remove oldest item if exceeding max size
+      }
+
+      return {
+        ...state,
+        undoStack: newUndoStack,
+        redoStack: [], // Clear redo stack on new command
+        transactionInProgress: false,
+        transactionBuffer: [],
+        transactionDescription: undefined,
+        canUndo: true,
+        canRedo: false,
+      };
+    }
+
+    case "ABORT_TRANSACTION": {
+      // Simply reset the transaction state without adding anything to the undo stack
+      return {
+        ...state,
+        transactionInProgress: false,
+        transactionBuffer: [],
+        transactionDescription: undefined,
       };
     }
 
