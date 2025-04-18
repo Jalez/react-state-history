@@ -125,9 +125,7 @@ export function saveStateToStorage(
     };
 
     localStorage.setItem(storageKey, JSON.stringify(stateToSave));
-    console.log(
-      `State saved to localStorage (key: ${storageKey}, undo: ${undoStack.length}, redo: ${redoStack.length})`
-    );
+    
   } catch (error) {
     console.error("Error saving persistent state:", error);
   }
