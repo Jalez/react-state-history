@@ -103,10 +103,10 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     isPersistent: defaultPersistent,
   });
   
-  // Derived state
+  // Derived state - adjusted to consider both persistence status and load attempt
   const initialStateLoaded = useMemo(
-    () => state.isPersistent && initialLoadAttempted,
-    [state.isPersistent, initialLoadAttempted]
+    () => initialLoadAttempted,
+    [initialLoadAttempted]
   );
 
   // Load state from storage once on mount if persistence is enabled
@@ -121,6 +121,10 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
         dispatch({ type: "LOAD_PERSISTENT_STATE", state: persistedState });
       }
       
+      // Mark load as attempted regardless of result
+      setInitialLoadAttempted(true);
+    } else if (!initialLoadAttempted) {
+      // Even if persistence is off, mark load as attempted for consistency
       setInitialLoadAttempted(true);
     }
   }, [

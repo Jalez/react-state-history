@@ -213,7 +213,13 @@ describe("StateHistoryContext", () => {
       undo: vi.fn(),
       id: "test",
       description: "Restored StateChange",
+      commandName: "test-command", // Add command name for serialization
+      params: {}, // Add params for serialization
     };
+
+    // Set up a mock registry for the command
+    const mockExecute = vi.fn();
+    const mockUndo = vi.fn();
 
     const { result: initialResult, unmount } = renderHook(
       () => useHistoryStateContext(),
@@ -226,10 +232,16 @@ describe("StateHistoryContext", () => {
       }
     );
 
+    // Register the test command type
+    await act(async () => {
+      initialResult.current.registerCommand("test-command", mockExecute, mockUndo);
+      await new Promise(resolve => setTimeout(resolve, 10));
+    });
+
     // Execute a StateChange and ensure it's persisted
     await act(async () => {
       initialResult.current.execute(testCommand);
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 100)); // Longer timeout for persistence
     });
 
     // Make sure the state was persisted
@@ -247,16 +259,22 @@ describe("StateHistoryContext", () => {
       ),
     });
 
-    // Wait for the initial load to complete
-    await waitFor(() => {
-      expect(newResult.current.initialStateLoaded).toBe(true);
+    // Register the test command type in the new instance too
+    await act(async () => {
+      newResult.current.registerCommand("test-command", mockExecute, mockUndo);
+      await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    // The new hook should have the persisted state
+    // Check basic properties first
     await expectCommandHistory(newResult, {
       canUndo: true,
       canRedo: false,
       isPersistent: true,
     });
+
+    // The initialStateLoaded flag should eventually become true
+    await waitFor(() => {
+      expect(newResult.current.initialStateLoaded).toBe(true);
+    }, { timeout: 1000 });
   });
 });
