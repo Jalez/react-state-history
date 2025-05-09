@@ -1,9 +1,6 @@
 /** @format */
 import { StateChange } from "../types";
-import {
-  createRegistryCommand,
-  registerCommand as globalRegisterCommand,
-} from "./stateChangeRegistry";
+import { createRegistryCommand } from "./stateChangeRegistry";
 import { useHistoryStateContext } from "../context/StateHistoryContext";
 import { useEffect, useRef } from "react";
 
@@ -46,40 +43,6 @@ export function createCompositeCommand(
     description: description || "Composite StateChange",
     id: generateCommandId(),
   };
-}
-
-/**
- * Analyzes a serialized StateChange string to determine its behavior
- * This is useful when dealing with persisted commands
- */
-export function analyzeCommandString(cmdString: string): {
-  type: "increment" | "decrement" | "reset" | "unknown";
-  target?: string;
-} {
-  // Check for increment patterns
-  if (
-    cmdString.includes("c + 1") ||
-    cmdString.includes("count + 1") ||
-    (cmdString.includes("setValue(newValue)") && cmdString.includes("newValue"))
-  ) {
-    return { type: "increment", target: "count" };
-  }
-
-  // Check for decrement patterns
-  if (
-    cmdString.includes("c - 1") ||
-    cmdString.includes("count - 1") ||
-    (cmdString.includes("setValue(") && cmdString.includes("count - 1"))
-  ) {
-    return { type: "decrement", target: "count" };
-  }
-
-  // Check for reset patterns
-  if (cmdString.includes("setValue(0)") || cmdString.includes("setCount(0)")) {
-    return { type: "reset", target: "count" };
-  }
-
-  return { type: "unknown" };
 }
 
 /**
@@ -134,35 +97,6 @@ export function useRegisterValueChangeCommand<T>(
 }
 
 /**
- * Registers a value change StateChange
- * This is a common pattern for handling state changes
- *
- * @deprecated Use useRegisterValueChangeCommand hook instead which uses context-specific registry
- */
-export function registerValueChangeCommand<T>(
-  commandType: string,
-  applyChange: (value: T) => void
-): void {
-  console.warn(
-    `[Deprecated] registerValueChangeCommand is using global registry which can cause conflicts. ` +
-      `Please use useRegisterValueChangeCommand hook inside a component to use context-specific registry.`
-  );
-
-  // Use imported globalRegisterCommand instead of require
-  globalRegisterCommand(
-    commandType,
-    // Execute function sets to new value
-    (params: { oldValue: T; newValue: T }) => {
-      applyChange(params.newValue);
-    },
-    // Undo function reverts to old value
-    (params: { oldValue: T; newValue: T }) => {
-      applyChange(params.oldValue);
-    }
-  );
-}
-
-/**
  * Create a StateChange that handles changing a value
  *
  * @param commandType - Identifier for the type of command
@@ -191,3 +125,6 @@ export function createValueChangeCommand<T, U = T>(
     contextRegistry
   );
 }
+
+// Export legacy function for backward compatibility
+export { registerCommand } from '../context/StateHistoryContext';

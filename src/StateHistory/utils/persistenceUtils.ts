@@ -7,105 +7,56 @@ import {
   SerializableStateChange,
 } from "./stateChangeRegistry";
 
+/**
+ * Interface for the serialized state structure
+ */
 interface SerializedState {
-  undoStack: (SerializableStateChange | Record<string, unknown>)[];
-  redoStack: (SerializableStateChange | Record<string, unknown>)[];
+  undoStack: SerializableStateChange[];
+  redoStack: SerializableStateChange[];
   maxStackSize: number;
   isPersistent: boolean;
 }
 
 /**
- * Serializes a StateChange to a format that can be stored in localStorage
+ * Serializes a StateChange for storage
  */
-export function serializeCommand(
-  cmd: StateChange
-): SerializableStateChange | Record<string, unknown> {
-  // If the StateChange has a commandName and params, use registry serialization
-  if (cmd.commandName && cmd.params !== undefined) {
-    return dehydrateCommand(cmd);
+export function serializeCommand(cmd: StateChange): SerializableStateChange {
+  // Ensure the command has a commandName for proper serialization
+  if (!cmd.commandName || cmd.params === undefined) {
+    throw new Error(`Cannot serialize command without commandName or params: ${cmd.description}`);
   }
-
-  // Fall back to legacy serialization for non-registry commands
-  console.warn(
-    "StateChange is not registry-based, using legacy serialization:",
-    cmd.description
-  );
-  const result: Record<string, unknown> = {};
-
-  // Copy all properties except functions
-  Object.entries(cmd).forEach(([key, value]) => {
-    if (typeof value !== "function") {
-      result[key] = value;
-    }
-  });
-
-  // Add the serialized functions (legacy approach)
-  result.execute = cmd.execute.toString();
-  result.undo = cmd.undo.toString();
-
-  return result;
+  
+  return dehydrateCommand(cmd);
 }
 
 /**
- * Deserializes a StateChange from localStorage format
+ * Deserializes a StateChange from storage format
  */
 export function deserializeCommand<T>(
-  serialized: SerializableStateChange | Record<string, unknown>,
-  contextRegistry?: Record<
-    string,
-    { execute: (params: T) => void; undo: (params: T) => void }
-  >
+  serialized: SerializableStateChange,
+  contextRegistry?: Record<string, { execute: (params: any) => void; undo: (params: any) => void }>
 ): StateChange {
-  // If the serialized StateChange has commandName and params, use registry deserialization
-  if ("commandName" in serialized && "params" in serialized) {
-    return hydrateCommand(
-      serialized as SerializableStateChange<T>,
-      contextRegistry
-    );
-  }
-
-  // Fall back to legacy deserialization for old commands
-  console.warn(
-    "StateChange is using legacy format, using placeholder functions:",
-    serialized.description
-  );
-
-  // Return a basic StateChange with placeholder functions
-  return {
-    id: String(serialized.id ?? ""),
-    description: String(serialized.description ?? "Legacy StateChange"),
-    // Use placeholder functions
-    execute: () =>
-      console.warn(
-        `Cannot execute legacy StateChange: ${serialized.description}`
-      ),
-    undo: () =>
-      console.warn(`Cannot undo legacy StateChange: ${serialized.description}`),
-  };
+  return hydrateCommand<any>(serialized, contextRegistry);
 }
 
 /**
- * Generates a storage key for the given path
+ * Generates a consistent storage key
  */
-export function getStorageKey(storageKey?: string): string {
-  // If an explicit storage key is provided, use it directly with the prefix
-  if (storageKey) {
-    return STORAGE_KEY_PREFIX + storageKey;
+export function getStorageKey(customKey?: string): string {
+  // If an explicit storage key is provided, use it with the prefix
+  if (customKey) {
+    return STORAGE_KEY_PREFIX + customKey;
   }
 
   // Otherwise use the current pathname as the key
-  // This helps avoid key conflicts between different pages
-  const pathname =
-    typeof window !== "undefined" ? window.location.pathname : "/";
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "/";
   // Remove trailing slashes for consistency
-  const normalizedPath = pathname.endsWith("/")
-    ? pathname.slice(0, -1)
-    : pathname;
+  const normalizedPath = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   return STORAGE_KEY_PREFIX + (normalizedPath || "root");
 }
 
 /**
- * Saves the StateChange history state to localStorage
+ * Saves the state history to localStorage
  */
 export function saveStateToStorage(
   storageKey: string,
@@ -117,9 +68,13 @@ export function saveStateToStorage(
   if (!isPersistent) return;
 
   try {
-    const stateToSave = {
-      undoStack: undoStack.map(serializeCommand),
-      redoStack: redoStack.map(serializeCommand),
+    // Filter out commands that can't be serialized (no commandName or params)
+    const serializableUndoStack = undoStack.filter(cmd => cmd.commandName && cmd.params !== undefined);
+    const serializableRedoStack = redoStack.filter(cmd => cmd.commandName && cmd.params !== undefined);
+
+    const stateToSave: SerializedState = {
+      undoStack: serializableUndoStack.map(serializeCommand),
+      redoStack: serializableRedoStack.map(serializeCommand),
       maxStackSize,
       isPersistent,
     };
@@ -132,14 +87,11 @@ export function saveStateToStorage(
 }
 
 /**
- * Loads the StateChange history state from localStorage
+ * Loads the state history from localStorage
  */
 export function loadStateFromStorage<T>(
   storageKey: string,
-  contextRegistry?: Record<
-    string,
-    { execute: (params: T) => void; undo: (params: T) => void }
-  >
+  contextRegistry?: Record<string, { execute: (params: any) => void; undo: (params: any) => void }>
 ): Partial<StateHistory> | null {
   try {
     const savedState = localStorage.getItem(storageKey);
@@ -150,23 +102,15 @@ export function loadStateFromStorage<T>(
     // Create a restored state with hydrated commands
     return {
       undoStack: Array.isArray(parsedState.undoStack)
-        ? parsedState.undoStack.map((cmd) =>
-            deserializeCommand(cmd, contextRegistry)
-          )
+        ? parsedState.undoStack.map(cmd => deserializeCommand(cmd, contextRegistry))
         : [],
       redoStack: Array.isArray(parsedState.redoStack)
-        ? parsedState.redoStack.map((cmd) =>
-            deserializeCommand(cmd, contextRegistry)
-          )
+        ? parsedState.redoStack.map(cmd => deserializeCommand(cmd, contextRegistry))
         : [],
       maxStackSize: parsedState.maxStackSize,
       isPersistent: parsedState.isPersistent,
-      canUndo:
-        Array.isArray(parsedState.undoStack) &&
-        parsedState.undoStack.length > 0,
-      canRedo:
-        Array.isArray(parsedState.redoStack) &&
-        parsedState.redoStack.length > 0,
+      canUndo: Array.isArray(parsedState.undoStack) && parsedState.undoStack.length > 0,
+      canRedo: Array.isArray(parsedState.redoStack) && parsedState.redoStack.length > 0,
     };
   } catch (error) {
     console.error("Error loading persistent state:", error);
@@ -175,7 +119,7 @@ export function loadStateFromStorage<T>(
 }
 
 /**
- * Removes state from localStorage
+ * Clears the stored state from localStorage
  */
 export function clearStoredState(storageKey: string): void {
   try {
