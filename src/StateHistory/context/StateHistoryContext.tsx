@@ -23,14 +23,64 @@ import {
 } from "../utils/persistenceUtils";
 import { useDeferredActions } from "../utils/renderUtils";
 
-// Create the context
-const StateHistoryContext = createContext<StateHistoryContextType | undefined>(
-  undefined
-);
+// Create the context with undefined initial value
+const StateHistoryContext = createContext<StateHistoryContextType | undefined>(undefined);
 
 /**
- * Provider component for StateChange history
- * Makes StateChange history state and methods available to all child components
+ * Helper function to reconnect commands with the registry
+ */
+function reconnectCommand(
+  cmd: StateChange, 
+  registry: Record<string, CommandFunction<unknown>>
+): StateChange {
+  // Special handling for transaction commands
+  if (cmd.commandName === 'transaction' && cmd.params && typeof cmd.params === 'object') {
+    const transactionParams = cmd.params as { commands?: StateChange[] };
+    
+    if (transactionParams.commands && Array.isArray(transactionParams.commands)) {
+      // Recursively reconnect nested commands
+      const reconnectedCommands = transactionParams.commands.map(
+        nestedCmd => reconnectCommand(nestedCmd, registry)
+      );
+      
+      // Return a new command with reconnected nested commands
+      return {
+        ...cmd,
+        params: { ...transactionParams, commands: reconnectedCommands },
+        execute: () => {
+          reconnectedCommands.forEach(nestedCmd => {
+            if (nestedCmd && typeof nestedCmd.execute === 'function') {
+              nestedCmd.execute();
+            }
+          });
+        },
+        undo: () => {
+          [...reconnectedCommands].reverse().forEach(nestedCmd => {
+            if (nestedCmd && typeof nestedCmd.undo === 'function') {
+              nestedCmd.undo();
+            }
+          });
+        }
+      };
+    }
+  }
+  
+  // For regular commands, reconnect with the registry if the command name exists in the registry
+  if (cmd.commandName && registry && registry[cmd.commandName]) {
+    return {
+      ...cmd,
+      execute: () => registry[cmd.commandName!].execute(cmd.params),
+      undo: () => registry[cmd.commandName!].undo(cmd.params),
+    };
+  }
+  
+  // If no reconnection is possible, return the original command
+  return cmd;
+}
+
+/**
+ * Provider component for State History
+ * Makes state history functionality available to all child components
  */
 export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
   children,
@@ -40,36 +90,37 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
 }) => {
   // Generate storage key
   const finalStorageKey = getStorageKey(storageKey);
-
-  // Create a state to track if initial loading has been attempted
-  const [initialLoadAttempted, setInitialLoadAttempted] = useState(false);
   const scheduleDeferredAction = useDeferredActions();
+  
+  // State for tracking initialization
+  const [initialLoadAttempted, setInitialLoadAttempted] = useState(false);
+  const [registeredCommands, setRegisteredCommands] = useState<string[]>([]);
 
-  // Initialize state with custom max stack size if provided
+  // Initialize reducer with custom settings
   const [state, dispatch] = useReducer(commandHistoryReducer, {
     ...initialState,
     maxStackSize: maxStackSize || initialState.maxStackSize,
     isPersistent: defaultPersistent,
   });
+  
+  // Derived state
   const initialStateLoaded = useMemo(
     () => state.isPersistent && initialLoadAttempted,
     [state.isPersistent, initialLoadAttempted]
   );
-  // We need to track command registrations separately to handle persistence properly
-  const [registeredCommands, setRegisteredCommands] = useState<string[]>([]);
 
-  //When state is loaded from localStorage, we need to set the initial state
-
-  // Load persistent state on mount - only once and in useEffect
+  // Load state from storage once on mount if persistence is enabled
   useEffect(() => {
     if (state.isPersistent && !initialLoadAttempted) {
       const persistedState = loadStateFromStorage(
         finalStorageKey,
         state.commandRegistry
       );
+      
       if (persistedState) {
         dispatch({ type: "LOAD_PERSISTENT_STATE", state: persistedState });
       }
+      
       setInitialLoadAttempted(true);
     }
   }, [
@@ -79,73 +130,26 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     state.commandRegistry,
   ]);
 
-  // Try to reconnect any pending commands when registry updates
+  // Reconnect commands when the registry updates
   useEffect(() => {
-    if (initialLoadAttempted && (state.undoStack.length > 0 || state.redoStack.length > 0)) {
-      const hasNewCommands = Object.keys(state.commandRegistry).some(
-        (cmd) => !registeredCommands.includes(cmd)
-      );
-
+    // Only attempt reconnection if we have loaded state and have commands
+    const hasCommands = state.undoStack.length > 0 || state.redoStack.length > 0;
+    
+    if (initialLoadAttempted && hasCommands) {
+      // Check if registry has new commands
+      const currentCmdKeys = Object.keys(state.commandRegistry);
+      const hasNewCommands = currentCmdKeys.some(cmd => !registeredCommands.includes(cmd));
+      
       if (hasNewCommands) {
-        // Helper function to reconnect commands using registry
-        const reconnectCommand = (cmd: StateChange): StateChange => {
-          // Handle transaction commands specially to reconnect their nested commands
-          if (cmd.commandName === 'transaction' && cmd.params && typeof cmd.params === 'object') {
-            const transactionParams = cmd.params as { commands?: StateChange[] };
-            if (transactionParams.commands && Array.isArray(transactionParams.commands)) {
-              // Recursively reconnect each command in the transaction buffer
-              const reconnectedCommands = transactionParams.commands.map((nestedCmd: StateChange) => 
-                reconnectCommand(nestedCmd)
-              );
-              
-              return {
-                ...cmd,
-                params: { ...transactionParams, commands: reconnectedCommands },
-                execute: () => {
-                  reconnectedCommands.forEach((nestedCmd: StateChange) => {
-                    if (nestedCmd && typeof nestedCmd.execute === 'function') {
-                      nestedCmd.execute();
-                    }
-                  });
-                },
-                undo: () => {
-                  [...reconnectedCommands].reverse().forEach((nestedCmd: StateChange) => {
-                    if (nestedCmd && typeof nestedCmd.undo === 'function') {
-                      nestedCmd.undo();
-                    }
-                  });
-                }
-              };
-            }
-          }
-          
-          // For regular commands, reconnect with the registry
-          if (cmd.commandName && state.commandRegistry[cmd.commandName]) {
-            return {
-              ...cmd,
-              execute: () =>
-                state.commandRegistry[cmd.commandName as string].execute(
-                  cmd.params
-                ),
-              undo: () =>
-                state.commandRegistry[cmd.commandName as string].undo(
-                  cmd.params
-                ),
-            };
-          }
-          return cmd;
-        };
-
-        // Reconnect commands in both stacks
+        // Reconnect all commands with the updated registry
         const reconnectedState = {
-          ...state,
-          undoStack: state.undoStack.map(reconnectCommand),
-          redoStack: state.redoStack.map(reconnectCommand),
+          undoStack: state.undoStack.map(cmd => reconnectCommand(cmd, state.commandRegistry)),
+          redoStack: state.redoStack.map(cmd => reconnectCommand(cmd, state.commandRegistry)),
         };
-
-        // Update the list of registered commands we've seen
-        setRegisteredCommands(Object.keys(state.commandRegistry));
-
+        
+        // Update tracking of registered commands
+        setRegisteredCommands(currentCmdKeys);
+        
         // Update state with reconnected commands
         dispatch({ type: "RECONNECT_COMMANDS", state: reconnectedState });
       }
@@ -156,11 +160,9 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     registeredCommands,
     state.undoStack,
     state.redoStack,
-    state,
-    dispatch
   ]);
 
-  // Save state when it changes and persistence is enabled
+  // Save state to storage when it changes (if persistence enabled)
   useEffect(() => {
     if (state.isPersistent && initialLoadAttempted) {
       saveStateToStorage(
@@ -180,7 +182,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     initialLoadAttempted,
   ]);
 
-  // Set up event listener for execute-command events
+  // Listen for external command execution events
   useEffect(() => {
     const handleExecuteCommand = (event: Event) => {
       if (!(event instanceof CustomEvent) || !event.detail?.name) return;
@@ -199,7 +201,6 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
             params,
           };
 
-          // Execute the StateChange and update state in one go
           stateChange.execute();
           dispatch({ type: "EXECUTE", StateChange: stateChange });
         });
@@ -207,54 +208,54 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     };
 
     document.addEventListener("execute-command", handleExecuteCommand);
-    return () =>
-      document.removeEventListener("execute-command", handleExecuteCommand);
+    return () => document.removeEventListener("execute-command", handleExecuteCommand);
   }, [scheduleDeferredAction, state.commandRegistry]);
 
-  // StateChange execution with safe state updates
+  // Core context methods
+  
+  // Execute a command and add it to history
   const execute = useCallback(
-    (StateChange: StateChange) => {
-      if (!StateChange) return;
+    (stateChange: StateChange) => {
+      if (!stateChange) return;
 
       scheduleDeferredAction(() => {
-        // Execute StateChange first, outside of reducer
-        StateChange.execute();
-        // Then update the state
-        dispatch({ type: "EXECUTE", StateChange });
+        // Execute command first, then update state
+        stateChange.execute();
+        dispatch({ type: "EXECUTE", StateChange: stateChange });
       });
     },
     [scheduleDeferredAction]
   );
 
-  // Undo functionality with safe state updates
+  // Undo the most recent command
   const undo = useCallback(() => {
     if (state.undoStack.length === 0) return;
 
     scheduleDeferredAction(() => {
-      // Get the StateChange to undo
+      // Get command to undo
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
-      // Execute undo first, outside of reducer
+      // Call undo function first
       commandToUndo.undo();
-      // Then update the state
+      // Then update state
       dispatch({ type: "UNDO" });
     });
   }, [state.undoStack, scheduleDeferredAction]);
 
-  // Redo functionality with safe state updates
+  // Redo the most recently undone command
   const redo = useCallback(() => {
     if (state.redoStack.length === 0) return;
 
     scheduleDeferredAction(() => {
-      // Get the StateChange to redo
+      // Get command to redo
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
-      // Execute first, outside of reducer
+      // Call execute function first
       commandToRedo.execute();
-      // Then update the state
+      // Then update state
       dispatch({ type: "REDO" });
     });
   }, [state.redoStack, scheduleDeferredAction]);
 
-  // Clear StateChange history
+  // Clear the history stacks
   const clear = useCallback(() => {
     dispatch({ type: "CLEAR" });
   }, []);
@@ -267,24 +268,28 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
   // Toggle persistence
   const togglePersistence = useCallback(() => {
     const newPersistenceState = !state.isPersistent;
-    // Handle clearing localStorage if turning off
+    
+    // If turning off persistence, clear stored state
     if (!newPersistenceState) {
       clearStoredState(finalStorageKey);
     } else {
-      // If turning on persistence, try to load any existing state
+      // If turning on persistence, try to load existing state
       const persistedState = loadStateFromStorage(finalStorageKey);
       if (persistedState) {
         dispatch({
           type: "LOAD_PERSISTENT_STATE",
-          state: { ...persistedState, isPersistent: true }, // Ensure isPersistent is set
+          state: { ...persistedState, isPersistent: true },
         });
         return;
       }
     }
+    
     dispatch({ type: "TOGGLE_PERSISTENCE" });
   }, [state.isPersistent, finalStorageKey]);
 
-  // Register a command in the context's registry
+  // Command registry methods
+  
+  // Register a command
   const registerCommand = useCallback(
     <T,>(
       name: string,
@@ -298,15 +303,15 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
         undoFn: undoFn as (params: unknown) => void,
       });
     },
-    [dispatch]
+    []
   );
 
-  // Unregister a command from the context's registry
+  // Unregister a command
   const unregisterCommand = useCallback((name: string) => {
     dispatch({ type: "UNREGISTER_COMMAND", name });
   }, []);
 
-  // Get a command from the context's registry
+  // Get a command from the registry
   const getCommand = useCallback(
     <T,>(name: string): CommandFunction<T> | undefined => {
       return state.commandRegistry[name] as CommandFunction<T> | undefined;
@@ -314,7 +319,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     [state.commandRegistry]
   );
 
-  // Check if a command exists in the context's registry
+  // Check if a command exists in the registry
   const hasCommand = useCallback(
     (name: string): boolean => {
       return !!state.commandRegistry[name];
@@ -322,26 +327,29 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     [state.commandRegistry]
   );
 
-  // Transaction management methods
+  // Transaction methods
+  
+  // Begin a transaction
   const beginTransaction = useCallback((description?: string) => {
     dispatch({ type: "BEGIN_TRANSACTION", description });
   }, []);
 
+  // Commit a transaction
   const commitTransaction = useCallback(() => {
     scheduleDeferredAction(() => {
       dispatch({ type: "COMMIT_TRANSACTION" });
     });
   }, [scheduleDeferredAction]);
 
+  // Abort a transaction
   const abortTransaction = useCallback(() => {
-    // First, automatically undo all operations in the transaction buffer in reverse order
+    // First undo all operations in the buffer in reverse order
     if (state.transactionBuffer.length > 0) {
-      // Create a copy of the buffer and reverse it to undo in the correct order (LIFO)
-      [...state.transactionBuffer].reverse().forEach((command) => {
+      [...state.transactionBuffer].reverse().forEach(command => {
         try {
           command.undo();
         } catch (error) {
-          console.error("Error during transaction abort rollback:", error);
+          console.error("Error during transaction rollback:", error);
         }
       });
     }
@@ -350,7 +358,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     dispatch({ type: "ABORT_TRANSACTION" });
   }, [state.transactionBuffer]);
 
-  // Create context value
+  // Build the context value
   const contextValue: StateHistoryContextType = {
     ...state,
     initialStateLoaded,
@@ -378,15 +386,54 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
 };
 
 /**
- * Hook to use StateChange history context
- * @throws Error if used outside of a StateHistoryProvider
+ * Hook to access the state history context
+ * @throws Error if used outside a StateHistoryProvider
  */
 export const useHistoryStateContext = (): StateHistoryContextType => {
   const context = useContext(StateHistoryContext);
+  
   if (context === undefined) {
-    throw new Error(
-      "useHistoryState must be used within a StateHistoryProvider"
-    );
+    throw new Error("useHistoryStateContext must be used within a StateHistoryProvider");
   }
+  
   return context;
 };
+
+/**
+ * Export the register command function for use outside the context
+ * @param name Command name
+ * @param executeFn Execute function
+ * @param undoFn Undo function
+ */
+export function registerCommand<T>(
+  name: string,
+  executeFn: (params: T) => void,
+  undoFn: (params: T) => void
+): void {
+  // Create and dispatch a custom event to register the command
+  const event = new CustomEvent("register-command", {
+    detail: { name, executeFn, undoFn },
+  });
+  
+  document.dispatchEvent(event);
+}
+
+/**
+ * Export has command check for use outside the context
+ */
+export function hasCommand(_name: string): boolean {
+  // This is a simplified version that returns false;
+  // Users should migrate to useHistoryStateContext().hasCommand
+  console.warn("Global hasCommand() is deprecated. Use useHistoryStateContext().hasCommand instead.");
+  return false;
+}
+
+/**
+ * Export get command function for use outside the context
+ */
+export function getCommand<T>(_name: string): CommandFunction<T> | undefined {
+  // This is a simplified version that returns undefined;
+  // Users should migrate to useHistoryStateContext().getCommand
+  console.warn("Global getCommand() is deprecated. Use useHistoryStateContext().getCommand instead.");
+  return undefined;
+}

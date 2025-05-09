@@ -1,5 +1,6 @@
 /** @format */
 import { StateChange, CommandFunction, StateHistory } from "../types";
+import { createCompositeCommand } from "../utils/stateChangeUtils";
 
 // Storage key prefix for localStorage
 export const STORAGE_KEY_PREFIX = "state_history_";
@@ -44,6 +45,49 @@ export const initialState: StateHistory = {
 };
 
 /**
+ * Handles adding a new command to the undo stack
+ */
+function addCommandToUndoStack(state: StateHistory, command: StateChange): Partial<StateHistory> {
+  const newUndoStack = [...state.undoStack, command];
+  
+  // Remove oldest item if exceeding max size
+  if (newUndoStack.length > state.maxStackSize) {
+    newUndoStack.shift();
+  }
+  
+  return {
+    undoStack: newUndoStack,
+    redoStack: [], // Clear redo stack on new command
+    canUndo: true,
+    canRedo: false,
+  };
+}
+
+/**
+ * Creates a composite transaction command from a buffer of commands
+ */
+function createTransactionCommand(
+  state: StateHistory,
+  description?: string
+): StateChange | undefined {
+  // Filter out invalid commands
+  const validCommands = state.transactionBuffer.filter(cmd => 
+    cmd && typeof cmd.execute === 'function' && typeof cmd.undo === 'function'
+  );
+  
+  if (validCommands.length === 0) {
+    return undefined;
+  }
+  
+  // Create a composite command with the transaction description
+  return {
+    ...createCompositeCommand(validCommands, description || state.transactionDescription),
+    commandName: "transaction",
+    params: { commands: validCommands }
+  };
+}
+
+/**
  * Reducer for command history state management
  */
 export const commandHistoryReducer = (
@@ -61,24 +105,19 @@ export const commandHistoryReducer = (
       }
 
       // Normal execution (no transaction)
-      const newUndoStack = [...state.undoStack, action.StateChange];
-      if (newUndoStack.length > state.maxStackSize) {
-        newUndoStack.shift(); // Remove oldest item if exceeding max size
-      }
       return {
         ...state,
-        undoStack: newUndoStack,
-        redoStack: [], // Clear redo stack on new command
-        canUndo: true,
-        canRedo: false,
+        ...addCommandToUndoStack(state, action.StateChange)
       };
     }
 
     case "UNDO": {
       if (state.undoStack.length === 0) return state;
+      
       const commandToUndo = state.undoStack[state.undoStack.length - 1];
       const newUndoStack = state.undoStack.slice(0, -1);
       const newRedoStack = [...state.redoStack, commandToUndo];
+      
       return {
         ...state,
         undoStack: newUndoStack,
@@ -90,9 +129,11 @@ export const commandHistoryReducer = (
 
     case "REDO": {
       if (state.redoStack.length === 0) return state;
+      
       const commandToRedo = state.redoStack[state.redoStack.length - 1];
       const newRedoStack = state.redoStack.slice(0, -1);
       const newUndoStack = [...state.undoStack, commandToRedo];
+      
       return {
         ...state,
         undoStack: newUndoStack,
@@ -113,14 +154,16 @@ export const commandHistoryReducer = (
     }
 
     case "SET_MAX_STACK_SIZE": {
-      // Adjust undo stack if needed
       let newUndoStack = [...state.undoStack];
+      
+      // Trim the stack if needed
       if (newUndoStack.length > action.size) {
         newUndoStack = newUndoStack.slice(
           newUndoStack.length - action.size,
           newUndoStack.length
         );
       }
+      
       return {
         ...state,
         undoStack: newUndoStack,
@@ -140,7 +183,6 @@ export const commandHistoryReducer = (
       const undoStack = action.state.undoStack || state.undoStack;
       const redoStack = action.state.redoStack || state.redoStack;
 
-      // Only merge specified fields
       return {
         ...state,
         undoStack,
@@ -185,11 +227,9 @@ export const commandHistoryReducer = (
     }
 
     case "BEGIN_TRANSACTION": {
-      // If already in a transaction, don't start a new one (no nested transactions)
+      // Don't allow nested transactions
       if (state.transactionInProgress) {
-        console.warn(
-          "Transaction already in progress. Nested transactions are not supported."
-        );
+        console.warn("Transaction already in progress. Nested transactions are not supported.");
         return state;
       }
 
@@ -202,11 +242,8 @@ export const commandHistoryReducer = (
     }
 
     case "COMMIT_TRANSACTION": {
-      // If no transaction is in progress or buffer is empty, just return the current state
-      if (
-        !state.transactionInProgress ||
-        state.transactionBuffer.length === 0
-      ) {
+      // If no transaction is in progress or buffer is empty, just reset transaction state
+      if (!state.transactionInProgress || state.transactionBuffer.length === 0) {
         return {
           ...state,
           transactionInProgress: false,
@@ -215,13 +252,11 @@ export const commandHistoryReducer = (
         };
       }
 
-      // Ensure all commands in the buffer have execute and undo methods to avoid errors
-      const validCommands = state.transactionBuffer.filter(cmd => 
-        cmd && typeof cmd.execute === 'function' && typeof cmd.undo === 'function'
-      );
-
-      if (validCommands.length === 0) {
-        console.warn('No valid commands in transaction buffer to commit');
+      // Create a transaction command from the buffer
+      const transactionCommand = createTransactionCommand(state);
+      
+      if (!transactionCommand) {
+        // No valid commands to commit
         return {
           ...state,
           transactionInProgress: false,
@@ -229,37 +264,18 @@ export const commandHistoryReducer = (
           transactionDescription: undefined,
         };
       }
-
-      // Create a composite command from all buffered commands
-      const compositeCommand: StateChange = {
-        id: `transaction-${Date.now()}`,
-        description: state.transactionDescription,
-        execute: () => validCommands.forEach((cmd) => cmd.execute()),
-        undo: () => [...validCommands].reverse().forEach((cmd) => cmd.undo()),
-        params: { commands: validCommands },
-        commandName: "transaction",
-      };
-
-      // Add the composite command to the undo stack
-      const newUndoStack = [...state.undoStack, compositeCommand];
-      if (newUndoStack.length > state.maxStackSize) {
-        newUndoStack.shift(); // Remove oldest item if exceeding max size
-      }
-
+      
+      // Add the transaction command to the undo stack
       return {
         ...state,
-        undoStack: newUndoStack,
-        redoStack: [], // Clear redo stack on new command
+        ...addCommandToUndoStack(state, transactionCommand),
         transactionInProgress: false,
         transactionBuffer: [],
         transactionDescription: undefined,
-        canUndo: true,
-        canRedo: false,
       };
     }
 
     case "ABORT_TRANSACTION": {
-      // Simply reset the transaction state without adding anything to the undo stack
       return {
         ...state,
         transactionInProgress: false,
