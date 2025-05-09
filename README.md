@@ -10,6 +10,15 @@
 
 - **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
 
+## What's New in v0.3.0
+
+- **Simplified API Architecture**: Streamlined the API for better developer experience without breaking changes.
+- **Improved Hook System**: Enhanced hooks with better type safety and clearer parameter naming.
+- **Enhanced Transaction System**: Added `withTransaction` helper for more intuitive transaction handling.
+- **Better Registry Management**: Simplified command registry with proper cleanup on component unmount.
+- **Optimized Component Structure**: Improved HistoryControls with better composition and accessibility.
+- **Reduced Bundle Size**: Eliminated redundant code and simplified internal implementation.
+
 ## What's New in v0.2.2
 
 - **Fixed Transaction Persistence Issue**: Resolved an issue where transaction commands weren't properly registered after a page refresh, leading to errors when trying to undo transaction operations.
@@ -59,13 +68,14 @@ This approach separates the logic that modifies state from the components that t
 
 - **Command Pattern:** Encapsulates state changes as `StateChange` objects with `execute` and `undo` methods.
 - **React Context API:** Uses `StateHistoryProvider` and `useHistoryStateContext` for easy integration.
-- **Stack Size Management:** Configurable history stack size limit (default: 50) to prevent memory issues.
+- **Stack Size Management:** Configurable history stack size limit (default: 100) to prevent memory issues.
 - **Flexible Hooks:**
   - `useHistoryState`: A simple hook, similar to `useState`, that automatically handles state and command creation for basic scenarios.
   - `useTrackableState`: A lower-level hook to integrate with existing state management solutions, requiring manual tracking of previous values.
   - `useLatestState`: A specialized hook for retrieving the latest state from history, perfect for third-party library integrations.
-- **StateChange Registry:** Enables defining serializable command types for persistence.
-- **Persistence:** Optionally persists undo/redo history to `localStorage`.
+  - `useTransaction`: A hook for grouping multiple operations into a single undoable step with automatic rollback.
+- **Context-Based Registry:** Enables defining serializable command types with proper isolation between different providers.
+- **Persistence:** Optionally persists undo/redo history to `localStorage` with improved serialization.
 - **Composite Commands:** Group multiple actions into a single undoable/redoable step.
 - **Customizable UI:** Provides `HistoryControls` component with options for custom buttons or rendering logic.
 - **TypeScript:** Fully typed for better developer experience and safety.
@@ -75,7 +85,7 @@ This approach separates the logic that modifies state from the components that t
 1.  **`StateChange` Object:** The fundamental unit representing an action. It must have `execute` and `undo` functions. For persistence, it should also include `commandName` and `params`.
 2.  **`StateHistoryProvider`:** Wraps your application (or relevant part) to provide the undo/redo context. Manages the undo/redo stacks, persistence, and stack size limits.
 3.  **`useHistoryStateContext`:** Hook to access the context's state (`canUndo`, `canRedo`, `undoStack`, `redoStack`, `isPersistent`) and actions (`execute`, `undo`, `redo`, `clear`, `togglePersistence`, `setMaxStackSize`).
-4.  **StateChange Registry:** A global registry (`registerCommand`, `getCommand`) where you define _how_ to execute and undo specific types of commands based on their `commandName` and `params`. This is crucial for rehydrating commands from persistent storage.
+4.  **Context-Based Registry:** Each provider instance has its own registry (`registerCommand`, `hasCommand`) where you define how to execute and undo specific types of commands. This is crucial for rehydrating commands from persistent storage.
 
 ## Basic Setup
 
@@ -289,7 +299,7 @@ function PersistenceToggle() {
         />
         Enable Persistence
       </label>
-      <HistoryControls showPersistenceToggle={true} /> {/* Or use the built-in toggle */}
+      <HistoryControls />
     </div>
   );
 }
