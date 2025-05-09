@@ -22,19 +22,15 @@ export {
   createCompositeCommand,
   createCommand,
   generateCommandId,
-  analyzeCommandString,
   createValueChangeCommand,
-  // New context-aware hooks
   useRegisterValueChangeCommand,
-  // Legacy functions
-  registerValueChangeCommand,
+  // For backwards compatibility
+  registerCommand as registerValueChangeCommand,
 } from "./utils/stateChangeUtils";
 
 // Export StateChange registry
 export {
-  // New context-aware hooks
   useRegisterCommand,
-  // Legacy functions with deprecation warnings
   registerCommand,
   getCommand,
   hasCommand,
