@@ -2,6 +2,7 @@
 import React from "react";
 import { useHistoryStateContext } from "../context/StateHistoryContext";
 
+// Base button props shared by all control buttons
 export interface HistoryButtonProps {
   onClick: () => void;
   disabled: boolean;
@@ -11,27 +12,36 @@ export interface HistoryButtonProps {
   position?: "left" | "middle" | "right";
 }
 
+// Props for the main HistoryControls component
 export interface HistoryControlsProps {
+  // Custom button components
   UndoButton?: React.ComponentType<HistoryButtonProps>;
   RedoButton?: React.ComponentType<HistoryButtonProps>;
   ClearButton?: React.ComponentType<HistoryButtonProps>;
+  
+  // Styling
   className?: string;
+  
+  // Custom rendering function
   renderCustomControls?: (props: {
     undo: () => void;
     redo: () => void;
+    clear: () => void;
     canUndo: boolean;
     canRedo: boolean;
-    isPersistent?: boolean;
-    togglePersistence?: () => void;
+    isPersistent: boolean;
+    togglePersistence: () => void;
   }) => React.ReactNode;
+  
+  // Persistence toggle options
   showPersistenceToggle?: boolean;
   persistenceLabel?: string;
 }
 
 /**
- * Default button component used when no custom button is provided
+ * Base button component with default styling
  */
-const DefaultButton: React.FC<HistoryButtonProps> = ({
+const BaseButton: React.FC<HistoryButtonProps> = ({
   onClick,
   disabled,
   children,
@@ -39,11 +49,13 @@ const DefaultButton: React.FC<HistoryButtonProps> = ({
   style = {},
   position,
 }) => {
-  // Define border radius based on position
+  // Calculate border radius based on position
   const getBorderRadius = () => {
-    if (position === "left") return "4px 0 0 4px";
-    if (position === "right") return "0 4px 4px 0";
-    return "0";
+    switch (position) {
+      case "left": return "4px 0 0 4px";
+      case "right": return "0 4px 4px 0";
+      default: return "0";
+    }
   };
 
   return (
@@ -60,10 +72,7 @@ const DefaultButton: React.FC<HistoryButtonProps> = ({
         color: "#333333",
         border: "1px solid #bbbbbb",
         borderRadius: getBorderRadius(),
-        borderRight:
-          position === "left" || position === "middle"
-            ? "none"
-            : "1px solid #bbbbbb",
+        borderRight: position === "left" || position === "middle" ? "none" : "1px solid #bbbbbb",
         fontSize: "14px",
         fontWeight: "500",
         transition: "all 0.2s",
@@ -76,34 +85,34 @@ const DefaultButton: React.FC<HistoryButtonProps> = ({
 };
 
 /**
- * Default undo button
+ * Default undo button implementation
  */
 const DefaultUndoButton: React.FC<HistoryButtonProps> = (props) => (
-  <DefaultButton {...props} position="left">
+  <BaseButton {...props} position="left">
     Undo
-  </DefaultButton>
+  </BaseButton>
 );
 
 /**
- * Default redo button
+ * Default redo button implementation
  */
 const DefaultRedoButton: React.FC<HistoryButtonProps> = (props) => (
-  <DefaultButton {...props} position="right">
+  <BaseButton {...props} position="right">
     Redo
-  </DefaultButton>
+  </BaseButton>
 );
 
 /**
- * Default clear button
+ * Default clear button implementation
  */
 const DefaultClearButton: React.FC<HistoryButtonProps> = (props) => (
-  <DefaultButton {...props} position="middle">
+  <BaseButton {...props} position="middle">
     Clear History
-  </DefaultButton>
+  </BaseButton>
 );
 
 /**
- * Persistence toggle button
+ * Toggle switch for persistence
  */
 const PersistenceToggle: React.FC<{
   isPersistent: boolean;
@@ -150,19 +159,22 @@ const PersistenceToggle: React.FC<{
 
 /**
  * HistoryControls component
- *
- * Displays undo and redo buttons that can be customized
- * Enables users to undo/redo operations
+ * 
+ * Displays a toolbar with undo, redo, clear, and optional persistence controls
  */
 export const HistoryControls: React.FC<HistoryControlsProps> = ({
+  // Component customization
   UndoButton = DefaultUndoButton,
   RedoButton = DefaultRedoButton,
   ClearButton = DefaultClearButton,
-  className,
+  className = "",
   renderCustomControls,
+  
+  // Persistence options
   showPersistenceToggle = false,
   persistenceLabel = "Persistent History",
 }) => {
+  // Get all necessary state and functions from context
   const {
     canUndo,
     canRedo,
@@ -173,13 +185,14 @@ export const HistoryControls: React.FC<HistoryControlsProps> = ({
     togglePersistence,
   } = useHistoryStateContext();
 
-  // If custom rendering is provided, use that
+  // If custom rendering is provided, use that instead of default buttons
   if (renderCustomControls) {
     return (
       <>
         {renderCustomControls({
           undo,
           redo,
+          clear,
           canUndo,
           canRedo,
           isPersistent,
@@ -189,10 +202,10 @@ export const HistoryControls: React.FC<HistoryControlsProps> = ({
     );
   }
 
-  // Default rendering with customizable buttons and connected layout
+  // Default rendering with button components
   return (
     <div
-      className={`history-controls ${className || ""}`}
+      className={`history-controls ${className}`}
       style={{
         display: "inline-flex",
         margin: "10px 0",
@@ -215,6 +228,7 @@ export const HistoryControls: React.FC<HistoryControlsProps> = ({
         disabled={!(canUndo || canRedo)}
         position="middle"
       />
+      
       <RedoButton onClick={redo} disabled={!canRedo} position="right" />
     </div>
   );
