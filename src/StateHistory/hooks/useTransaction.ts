@@ -12,9 +12,25 @@ interface TransactionCommandParams {
 }
 
 /**
- * Hook for managing transactions to group multiple operations into a single undoable action
+ * Hook for grouping multiple operations into a single undoable action
  *
- * @returns Transaction control methods
+ * @returns Object containing transaction methods
+ * 
+ * @example
+ * // Simple usage with explicit begin/commit
+ * const { beginTransaction, commitTransaction } = useTransaction();
+ * beginTransaction("Edit multiple items");
+ * // ... perform multiple state changes ...
+ * commitTransaction();
+ * 
+ * @example
+ * // Using the withTransaction helper for automatic commit/rollback
+ * const { withTransaction } = useTransaction();
+ * withTransaction(() => {
+ *   // Any error here will automatically rollback all changes
+ *   updateItem(item1);
+ *   updateItem(item2);
+ * }, "Update multiple items");
  */
 export function useTransaction() {
   const {
@@ -26,37 +42,31 @@ export function useTransaction() {
     hasCommand
   } = useHistoryStateContext();
   
-  // Track if we've registered the command
+  // Track if we've registered the transaction command
   const isRegistered = useRef(false);
 
-  // Register the transaction command type when the hook is initialized
+  // Register the transaction command type once
   useEffect(() => {
     if (!isRegistered.current && !hasCommand(TRANSACTION_COMMAND_TYPE)) {
       // Register the transaction command type
       registerCommand<TransactionCommandParams>(
         TRANSACTION_COMMAND_TYPE,
+        // Execute function runs all commands in the transaction
         (params) => {
-          // The execute function executes all commands in the buffer
-          // Make sure each command has an execute method
-          if (params && params.commands) {
+          if (params?.commands) {
             params.commands.forEach(cmd => {
-              if (cmd && typeof cmd.execute === 'function') {
+              if (typeof cmd.execute === 'function') {
                 cmd.execute();
-              } else {
-                console.warn('Transaction command missing execute method:', cmd);
               }
             });
           }
         },
+        // Undo function reverses all commands in reverse order
         (params) => {
-          // The undo function undoes all commands in reverse order
-          // Make sure each command has an undo method
-          if (params && params.commands) {
+          if (params?.commands) {
             [...params.commands].reverse().forEach(cmd => {
-              if (cmd && typeof cmd.undo === 'function') {
+              if (typeof cmd.undo === 'function') {
                 cmd.undo();
-              } else {
-                console.warn('Transaction command missing undo method:', cmd);
               }
             });
           }
@@ -67,11 +77,7 @@ export function useTransaction() {
   }, [registerCommand, hasCommand]);
 
   /**
-   * Executes a function within a transaction context
-   * All state changes made during the function will be grouped into a single undoable operation
-   *
-   * @param fn Function to execute within the transaction
-   * @param description Optional description for the transaction
+   * Executes a function within a transaction, automatically handling commit/abort
    */
   const withTransaction = useCallback(
     (fn: () => void, description?: string) => {
@@ -80,8 +86,7 @@ export function useTransaction() {
         fn();
         commitTransaction();
       } catch (error) {
-        // If an error occurs, abort the transaction
-        // This will automatically roll back all state changes made during the transaction
+        // Roll back all changes if an error occurs
         abortTransaction();
         console.error("Transaction aborted due to error:", error);
         throw error;
@@ -92,34 +97,30 @@ export function useTransaction() {
 
   return {
     /**
-     * Begin a new transaction. State changes during a transaction will be grouped
-     * into a single undoable operation when committed.
-     *
-     * @param description Optional description for the transaction
+     * Begin a new transaction to group multiple operations
+     * @param description Optional description of the transaction
      */
     beginTransaction,
 
     /**
-     * Commit all changes in the current transaction as a single undoable operation.
-     * This adds the composite operation to the undo stack.
+     * Commit the transaction as a single undoable operation
      */
     commitTransaction,
 
     /**
-     * Abort the current transaction, discarding it from the undo history.
-     * This automatically rolls back all state changes made during the transaction.
+     * Abort and roll back all changes in the current transaction
      */
     abortTransaction,
 
     /**
-     * Helper method to execute code within a transaction.
-     * If the function throws an error, the transaction will be aborted
-     * and all state changes will be automatically rolled back.
+     * Execute code within a transaction with automatic commit/rollback
+     * @param fn Function to execute within the transaction
+     * @param description Optional description of the transaction
      */
     withTransaction,
 
     /**
-     * Boolean flag indicating if a transaction is currently in progress
+     * Whether a transaction is currently in progress
      */
     isTransactionInProgress,
   };
