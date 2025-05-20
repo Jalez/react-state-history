@@ -32,7 +32,7 @@ export function serializeCommand(cmd: StateChange): SerializableStateChange {
 /**
  * Deserializes a StateChange from storage format
  */
-export function deserializeCommand<T>(
+export function deserializeCommand(
   serialized: SerializableStateChange,
   contextRegistry?: Record<string, { execute: (params: any) => void; undo: (params: any) => void }>
 ): StateChange {
@@ -89,7 +89,7 @@ export function saveStateToStorage(
 /**
  * Loads the state history from localStorage
  */
-export function loadStateFromStorage<T>(
+export function loadStateFromStorage(
   storageKey: string,
   contextRegistry?: Record<string, { execute: (params: any) => void; undo: (params: any) => void }>
 ): Partial<StateHistory> | null {
