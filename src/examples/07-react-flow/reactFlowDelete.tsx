@@ -104,10 +104,15 @@ function FlowWithHistory() {
   const selectedEdgesRef = useRef<Edge[]>([]);
 
   // Use our StateHistory hooks to make node and edge changes trackable
-  const trackNodesChange = useTrackableState("flowNodes/update", setNodes);
+  const trackNodesChange = useTrackableState("flowNodes/updateNodes", setNodes, setNodes);
 
-  const trackEdgesChange = useTrackableState("flowEdges/update", setEdges);
+  const trackEdgesChange = useTrackableState("flowEdges/updateEdges", setEdges, setEdges);
 
+  const handleNodesChange = (changes: any) => {
+    // Handle node changes and track them
+    //trackNothingChange(!nothing, nothing, "Node changes");
+    onNodesChange(changes);
+  }
   // Track node and edge selection changes using ref to avoid infinite loops
   useOnSelectionChange({
     onChange: ({ nodes: selectedNodes, edges: selectedEdges }) => {
@@ -117,21 +122,20 @@ function FlowWithHistory() {
     },
   });
 
+
+
   const handleDelete = useCallback(() => {
     const hasSelectedNodes = selectedNodesRef.current.length > 0;
     const hasSelectedEdges = selectedEdgesRef.current.length > 0;
-
     // Only start a transaction if there's something to delete
+    
     if (hasSelectedNodes || hasSelectedEdges) {
       // Use the withTransaction helper to group the operations
       withTransaction(() => {
         // Handle node deletion if needed
+        const deletedNodeIds = selectedNodesRef.current.map(node => node.id);
         if (hasSelectedNodes) {
           const oldNodes = [...nodes];
-          console.log("Deleting nodes");
-
-          // Get IDs of nodes being deleted
-          const deletedNodeIds = selectedNodesRef.current.map(node => node.id);
 
           // Filter out the selected nodes to create new nodes array
           const newNodes = nodes.filter(
@@ -143,45 +147,28 @@ function FlowWithHistory() {
 
           // Track the node deletion with our StateHistory hook
           trackNodesChange(newNodes, oldNodes, "Delete nodes");
-
-          // Now also handle edges that are connected to the deleted nodes
-          const oldEdges = [...edges];
-          
-          // Filter out edges connected to deleted nodes
-          const newEdges = edges.filter(
-            (edge) => 
-              !deletedNodeIds.includes(edge.source) && 
-              !deletedNodeIds.includes(edge.target)
-          );
-
-          // Only track edge changes if edges were actually affected
-          if (newEdges.length !== oldEdges.length) {
-            trackEdgesChange(newEdges, oldEdges, "Delete connected edges");
-          }
-
-          // Clear selection after deletion to prevent attempting to delete again
           selectedNodesRef.current = [];
         }
+        const oldEdges = [...edges];
 
-        // Handle explicit edge deletion if needed
-        if (hasSelectedEdges) {
-          console.log("Deleting edges");
-          const oldEdges = [...edges];
+        // Filter out edges connected to deleted nodes (and those that are not selected)
+        const newEdges = edges.filter(
+          (edge) =>
+            !deletedNodeIds.includes(edge.source) &&
+            !deletedNodeIds.includes(edge.target) &&
+            !selectedEdgesRef.current.some(
+              (selectedEdge) => selectedEdge.id === edge.id
+            )
+        );
 
-          // Filter out the selected edges to create new edges array
-          const newEdges = edges.filter(
-            (edge) =>
-              !selectedEdgesRef.current.some(
-                (selectedEdge) => selectedEdge.id === edge.id
-              )
-          );
-
-          // Track the edge deletion with our StateHistory hook
+        // Only track edge changes if edges were actually affected
+        if (newEdges.length !== oldEdges.length) {
           trackEdgesChange(newEdges, oldEdges, "Delete edges");
-
-          // Clear selection after deletion to prevent attempting to delete again
-          selectedEdgesRef.current = [];
         }
+
+        // Clear selection after deletion to prevent attempting to delete again
+        selectedEdgesRef.current = [];
+
       }, "Delete selection"); // Provide a meaningful description for the transaction
     }
   }, [
@@ -215,15 +202,15 @@ function FlowWithHistory() {
   // Handle delete key press to remove selected nodes and edges
   useEffect(() => {
     if (deleteKeyPressed || backspaceKeyPressed) {
-      
-        handleDelete();
-    
+
+      handleDelete();
+
     }
   }, [
     deleteKeyPressed,
     backspaceKeyPressed,
     handleDelete,
-  
+
   ]);
 
   const onNodeDragStart = useCallback(() => {
@@ -253,9 +240,8 @@ function FlowWithHistory() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onNodesDelete={handleDelete
-        }
+        onNodesChange={handleNodesChange}
+        onNodesDelete={handleDelete}
         onEdgesDelete={handleDelete}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}

@@ -42,6 +42,9 @@ describe("HistoryControls", () => {
     transactionInProgress: false,
     transactionBuffer: [],
     transactionDescription: undefined,
+    // Add undo/redo progress flags
+    isUndoing: false,
+    isRedoing: false,
   };
 
   // Helper to set up the mock context for each test

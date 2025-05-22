@@ -148,6 +148,14 @@ export interface StateHistoryContextType extends StateHistory {
    */
   initialStateLoaded: boolean;
   /**
+   * True if an undo operation is currently in progress
+   */
+  isUndoing: boolean;
+  /**
+   * True if a redo operation is currently in progress
+   */
+  isRedoing: boolean;
+  /**
    * Execute a StateChange and add it to the undo stack
    */
   execute: (StateChange: StateChange) => void;
@@ -220,6 +228,11 @@ export interface StateHistoryContextType extends StateHistory {
    * Whether a transaction is currently in progress
    */
   isTransactionInProgress: boolean;
+
+  /**
+   * The type of the last command operation: 'undo', 'redo', 'execute', or undefined
+   */
+  lastCommandType?: 'undo' | 'redo' | 'execute';
 }
 
 /**

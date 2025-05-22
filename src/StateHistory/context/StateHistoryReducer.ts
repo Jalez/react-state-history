@@ -54,7 +54,7 @@ function addCommandToUndoStack(state: StateHistory, command: StateChange): Parti
   if (newUndoStack.length > state.maxStackSize) {
     newUndoStack.shift();
   }
-  
+
   return {
     undoStack: newUndoStack,
     redoStack: [], // Clear redo stack on new command
@@ -232,6 +232,7 @@ export const commandHistoryReducer = (
         console.warn("Transaction already in progress. Nested transactions are not supported.");
         return state;
       }
+
 
       return {
         ...state,

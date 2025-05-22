@@ -44,6 +44,7 @@ export function useTransaction() {
   
   // Track if we've registered the transaction command
   const isRegistered = useRef(false);
+  const isActiveTransaction = useRef(false);
 
   // Register the transaction command type once
   useEffect(() => {
@@ -82,6 +83,10 @@ export function useTransaction() {
   const withTransaction = useCallback(
     (fn: () => void, description?: string) => {
       try {
+        if(isActiveTransaction.current) {
+          throw new Error("Transaction already in progress");
+        }
+        isActiveTransaction.current = true;
         beginTransaction(description);
         fn();
         commitTransaction();
@@ -90,6 +95,9 @@ export function useTransaction() {
         abortTransaction();
         console.error("Transaction aborted due to error:", error);
         throw error;
+      }
+      finally {
+        isActiveTransaction.current = false;
       }
     },
     [beginTransaction, commitTransaction, abortTransaction]

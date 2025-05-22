@@ -10,6 +10,14 @@
 
 - **Integration example**: [React Flow Integration](https://codesandbox.io/p/sandbox/react-flow-history-lqgwc8)
 
+## What's New in v0.4.0
+
+- **New Features & Improvements:**
+  - Added new features and enhancements across core hooks and context.
+  - Improved transaction and state management logic.
+  - Enhanced test coverage and example usage.
+  - Minor API improvements for better developer experience.
+
 ## What's New in v0.3.0
 
 - **Simplified API Architecture**: Streamlined the API for better developer experience without breaking changes.

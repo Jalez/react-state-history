@@ -109,7 +109,6 @@ const UserForm: React.FC = () => {
 
         // Simulate a successful form submission
         // In a real app, you might call an API here
-        console.log("Form submitted successfully:", formData);
 
         // Clear the form after successful submission
         const newFormData: UserFormData = {

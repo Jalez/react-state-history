@@ -95,6 +95,11 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
   // State for tracking initialization
   const [initialLoadAttempted, setInitialLoadAttempted] = useState(false);
   const [registeredCommands, setRegisteredCommands] = useState<string[]>([]);
+  // State for tracking if undo/redo is in progress
+  const [isUndoing, setIsUndoing] = useState(false);
+  const [isRedoing, setIsRedoing] = useState(false);
+  // Track the last command type
+  const [lastCommandType, setLastCommandType] = useState<"undo" | "redo" | "execute" | undefined>(undefined);
 
   // Initialize reducer with custom settings
   const [state, dispatch] = useReducer(commandHistoryReducer, {
@@ -221,7 +226,7 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
   const execute = useCallback(
     (stateChange: StateChange) => {
       if (!stateChange) return;
-
+      setLastCommandType("execute");
       scheduleDeferredAction(() => {
         // Execute command first, then update state
         stateChange.execute();
@@ -231,33 +236,47 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     [scheduleDeferredAction]
   );
 
-  // Undo the most recent command
+  // Undo the most recent command (intent only)
   const undo = useCallback(() => {
     if (state.undoStack.length === 0) return;
+    setIsUndoing(true);
+  }, [state.undoStack]);
 
-    scheduleDeferredAction(() => {
-      // Get command to undo
-      const commandToUndo = state.undoStack[state.undoStack.length - 1];
-      // Call undo function first
-      commandToUndo.undo();
-      // Then update state
-      dispatch({ type: "UNDO" });
-    });
-  }, [state.undoStack, scheduleDeferredAction]);
-
-  // Redo the most recently undone command
+  // Redo the most recently undone command (intent only)
   const redo = useCallback(() => {
     if (state.redoStack.length === 0) return;
+    setIsRedoing(true);
+  }, [state.redoStack]);
 
-    scheduleDeferredAction(() => {
-      // Get command to redo
-      const commandToRedo = state.redoStack[state.redoStack.length - 1];
-      // Call execute function first
-      commandToRedo.execute();
-      // Then update state
-      dispatch({ type: "REDO" });
-    });
-  }, [state.redoStack, scheduleDeferredAction]);
+  // Effect to perform undo when isUndoing becomes true
+  useEffect(() => {
+    if (!isUndoing) return;
+    // Only run if there is something to undo
+    if (state.undoStack.length === 0) {
+      setIsUndoing(false);
+      return;
+    }
+    setLastCommandType("undo");
+    const commandToUndo = state.undoStack[state.undoStack.length - 1];
+    commandToUndo.undo();
+    dispatch({ type: "UNDO" });
+    setIsUndoing(false);
+  }, [isUndoing, state.undoStack]);
+
+  // Effect to perform redo when isRedoing becomes true
+  useEffect(() => {
+    if (!isRedoing) return;
+    // Only run if there is something to redo
+    if (state.redoStack.length === 0) {
+      setIsRedoing(false);
+      return;
+    }
+    setLastCommandType("redo");
+    const commandToRedo = state.redoStack[state.redoStack.length - 1];
+    commandToRedo.execute();
+    dispatch({ type: "REDO" });
+    setIsRedoing(false);
+  }, [isRedoing, state.redoStack]);
 
   // Clear the history stacks
   const clear = useCallback(() => {
@@ -380,6 +399,9 @@ export const StateHistoryProvider: React.FC<StateHistoryProviderProps> = ({
     commitTransaction,
     abortTransaction,
     isTransactionInProgress: state.transactionInProgress,
+    isUndoing,
+    isRedoing,
+    lastCommandType,
   };
 
   return (
