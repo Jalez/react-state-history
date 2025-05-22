@@ -34,9 +34,9 @@ export function serializeCommand(cmd: StateChange): SerializableStateChange {
  */
 export function deserializeCommand(
   serialized: SerializableStateChange,
-  contextRegistry?: Record<string, { execute: (params: any) => void; undo: (params: any) => void }>
+  contextRegistry?: Record<string, { execute: (params: unknown) => void; undo: (params: unknown) => void }>
 ): StateChange {
-  return hydrateCommand<any>(serialized, contextRegistry);
+  return hydrateCommand<unknown>(serialized, contextRegistry);
 }
 
 /**
@@ -91,7 +91,7 @@ export function saveStateToStorage(
  */
 export function loadStateFromStorage(
   storageKey: string,
-  contextRegistry?: Record<string, { execute: (params: any) => void; undo: (params: any) => void }>
+  contextRegistry?: Record<string, { execute: (params: unknown) => void; undo: (params: unknown) => void }>
 ): Partial<StateHistory> | null {
   try {
     const savedState = localStorage.getItem(storageKey);

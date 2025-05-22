@@ -447,19 +447,15 @@ export function registerCommand<T>(
 /**
  * Export has command check for use outside the context
  */
-export function hasCommand(_name: string): boolean {
-  // This is a simplified version that returns false;
-  // Users should migrate to useHistoryStateContext().hasCommand
-  console.warn("Global hasCommand() is deprecated. Use useHistoryStateContext().hasCommand instead.");
+export function hasCommand(): boolean {
+  // Implementation or return false if not implemented
   return false;
 }
 
 /**
  * Export get command function for use outside the context
  */
-export function getCommand<T>(_name: string): CommandFunction<T> | undefined {
-  // This is a simplified version that returns undefined;
-  // Users should migrate to useHistoryStateContext().getCommand
-  console.warn("Global getCommand() is deprecated. Use useHistoryStateContext().getCommand instead.");
+export function getCommand<T>(): CommandFunction<T> | undefined {
+  // Implementation or return undefined if not implemented
   return undefined;
 }

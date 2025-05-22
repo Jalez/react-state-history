@@ -108,9 +108,8 @@ function FlowWithHistory() {
 
   const trackEdgesChange = useTrackableState("flowEdges/updateEdges", setEdges, setEdges);
 
-  const handleNodesChange = (changes: any) => {
+  const handleNodesChange = (changes: Parameters<typeof onNodesChange>[0]) => {
     // Handle node changes and track them
-    //trackNothingChange(!nothing, nothing, "Node changes");
     onNodesChange(changes);
   }
   // Track node and edge selection changes using ref to avoid infinite loops
